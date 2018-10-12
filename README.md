@@ -173,7 +173,7 @@ Add Gazebo Models:
 ```
 hg clone https://bitbucket.org/osrf/gazebo_models ~/gazebo_ws/gazebo_models
 cd ~/gazebo_ws/gazebo_models
-echo 'export GAZEBO_MODEL_PATH=~/gazebo_ws/gazebo_models' >> ~/.bashrc
+echo 'export GAZEBO_MODEL_PATH=~/gazebo_ws/gazebo_models:${GAZEBO_MODEL_PATH}' >> ~/.bashrc
 source ~/.bashrc
 ```
 
@@ -205,26 +205,23 @@ param load ../../Controls-Other/Params/Sim_master.param
 ```
 Play around, then close by "Control+C" in the Terminal windows.
 
-## 9. Install Roomba Drone Simulator
+## 9. Install Mission 8 Simulator
 
-In order to use the Ardupilot simulator with the Roombas - as well as other plugins such as cameras - you need to add ROS packages to Gazebo. 
+In order to use the Ardupilot simulator with the Mission 8 field - as well as other plugins such as cameras - you need to add ROS packages to Gazebo. 
 Install the following dependencies:
 ```
  sudo apt install ros-melodic-gazebo-ros ros-melodic-gazebo-plugins
 ```
 
-Clone in Gazebo-Ros in your catkin_ws and the Computations repo in your home directory:
+Clone in the mission8_sim repository into your catkin_ws:
 ```
 cd ~/catkin_ws/src
-git clone https://github.com/Texas-Aerial-Robotics/Gazebo-Ros.git
-cd ~
-git clone https://github.com/Texas-Aerial-Robotics/Computations.git
+git clone https://github.com/Texas-Aerial-Robotics/mission8_sim.git
 ```
 
-Add the following to your `~/.bashrc` to use the Roomba plugins:
+Add the following to your `~/.bashrc` to help Gazebo find the mission8_sim models:
 ```
-export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:~/Computations/roomba_host/models
-export GAZEBO_PLUGIN_PATH=${GAZEBO_PLUGIN_PATH}:~/Computations/roomba_host/build
+export GAZEBO_MODEL_PATH=${GAZEBO_MODEL_PATH}:~/catkin_ws/src/mission8_sim/models
 ```
 
 Build the ROS packages you just downloaded:
@@ -238,15 +235,24 @@ Reload `~/.bashrc` so the Terminal knows where the packages are located:
 source ~/.bashrc
 ```
 
-### Run a sim with roslaunch
+### Run a 3 drone sim with roslaunch
 In one Terminal (Terminal 1):
 ```
-roslaunch gazebo_ros_sim droneOnly.launch
+roslaunch mission8_sim multiDrone.launch
 ```
-In another Terminal (Terminal 2), run the following command to start and connect the Ardupilot simulator to Gazebo:
+In another Terminal (Terminal 2), run the following command to start and connect a Ardupilot simulator to Gazebo:
 ```
-cd ~/ardupilot/ArduCopter/ && sim_vehicle.py -f gazebo-iris --console -I0
+cd ~/ardupilot/ArduCopter/ && sim_vehicle.py -j4 -f Gazebo --console --location=HOME -I0
 ```
+In another Terminal (Terminal 3), run the following command to start and connect a Ardupilot simulator to Gazebo:
+```
+cd ~/ardupilot/ArduCopter/ && sim_vehicle.py -j4 -f Gazebo --console --location=HOME -I1
+```
+In another Terminal (Terminal 4), run the following command to start and connect a Ardupilot simulator to Gazebo:
+```
+cd ~/ardupilot/ArduCopter/ && sim_vehicle.py -j4 -f Gazebo --console --location=HOME -I2
+```
+As you can see, the command above can be modified for any number of drones desired. 
 Play around, then close by "Control+C" in the Terminal windows.
 
 ### To view camera plugin
@@ -264,7 +270,7 @@ rosrun image_view image_view image:=/webcam/image_raw
 
 Launch the sim via roslaunch (Terminal 1):
 ```
-roslaunch gazebo_ros_sim droneOnly.launch
+roslaunch mission8_sim droneOnly.launch
 ```
 In another Terminal (Terminal 2) run the following command to start and connect the Ardupilot sim to Gazebo:
 ```
