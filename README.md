@@ -68,9 +68,9 @@ source ~/.bashrc
 
 ```
 cd ~/catkin_ws/src
-git clone https://github.com/Texas-Aerial-Robotics/Controls-ROS.git
+git clone https://github.com/Texas-Aerial-Robotics/Mission8_OutOfControls.git
 ```
-Our repository should now be copied to `~/catkin_ws/src/Controls-ROS/` (don't run this line. This is just saying that if you browse in the file manager, you will see those folders).
+Our repository should now be copied to `~/catkin_ws/src/Mission8_OutOfControls/` (don't run this line. This is just saying that if you browse in the file manager, you will see those folders).
 
 ## 5. Build instructions
    Inside `catkin_ws`, run `catkin build`:
