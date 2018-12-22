@@ -117,8 +117,9 @@ set(CMAKE_CXX_FLAGS "-std=c++0x ${CMAKE_CXX_FLAGS}")
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
+  include
   ${catkin_INCLUDE_DIRS}
+
 )
 
 ## Declare a C++ library
@@ -203,3 +204,6 @@ target_link_libraries(flight ${catkin_LIBRARIES})
 
 add_executable(estimate src/positionEstimate.cpp)
 target_link_libraries(estimate ${catkin_LIBRARIES})
+
+add_executable(newflight src/newFlightCode.cpp)
+target_link_libraries(newflight ${catkin_LIBRARIES})
