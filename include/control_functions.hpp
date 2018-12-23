@@ -5,6 +5,18 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <cmath>
 #include <math.h>
+#include <ros/ros.h>
+#include <std_msgs/Float64.h>
+#include <std_msgs/String.h>
+#include <mavros_msgs/CommandBool.h>
+#include <mavros_msgs/SetMode.h>
+#include <mavros_msgs/PositionTarget.h>
+#include <unistd.h>
+#include <vector>
+#include <ros/duration.h>
+#include <iostream>
+
+
 
 mavros_msgs::State current_state;
 nav_msgs::Odometry current_pose;
@@ -15,10 +27,21 @@ float current_heading_g;
 float local_offset_g;
 float correction_heading_g = 0;
 
-// correction_vector_g.position.x = 0; 
-// correction_vector_g.position.y = 0;
-// correction_vector_g.position.z = 0;  
 
+
+ros::Publisher local_pos_pub;
+ros::Subscriber currentPos;
+ros::Subscriber state_sub;
+ros::ServiceClient arming_client;
+ros::ServiceClient land_client;
+ros::ServiceClient set_mode_client;
+ros::ServiceClient takeoff_client;
+
+//get armed state
+void state_cb(const mavros_msgs::State::ConstPtr& msg)
+{
+  current_state = *msg;
+}
 void enu_2_local(nav_msgs::Odometry current_pose_enu)
 {
   float x = current_pose_enu.pose.pose.position.x;
@@ -156,7 +179,7 @@ int initialize_local_frame()
 	ROS_INFO("the X' axis is facing: %f", local_offset_g);
 	return 0;
 }
-int takeoff(ros::ServiceClient arming_client, ros::ServiceClient takeoff_client, ros::Publisher local_pos_pub)
+int takeoff(float takeoff_alt)
 {
 	//intitialize first waypoint of mission
 	setDestination(0,0,1.5);
@@ -188,7 +211,7 @@ int takeoff(ros::ServiceClient arming_client, ros::ServiceClient takeoff_client,
 	//request takeoff
 	
 	mavros_msgs::CommandTOL srv_takeoff;
-	srv_takeoff.request.altitude = 1.5;
+	srv_takeoff.request.altitude = takeoff_alt;
 	if(takeoff_client.call(srv_takeoff)){
 		ROS_INFO("takeoff sent %d", srv_takeoff.response.success);
 	}else{
@@ -198,3 +221,33 @@ int takeoff(ros::ServiceClient arming_client, ros::ServiceClient takeoff_client,
 	sleep(5);
 	return 0; 
 }
+int check_waypoint_reached()
+{
+	local_pos_pub.publish(waypoint);
+	
+	float tollorance = .3;
+	float deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
+    float deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
+    float deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
+    float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
+
+    if( dMag < tollorance)
+	{
+		return 1;
+	}else{
+		//std::cout << "dmag "<< dMag << std::endl;
+		return 0;
+	}
+}
+int init_publisher_subscriber(ros::NodeHandle controlnode)
+{
+	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+	currentPos = controlnode.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
+	state_sub = controlnode.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
+	arming_client = controlnode.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
+	land_client = controlnode.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
+	set_mode_client = controlnode.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
+	takeoff_client = controlnode.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
+
+}
+
