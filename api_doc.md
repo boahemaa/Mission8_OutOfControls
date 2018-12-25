@@ -4,24 +4,24 @@ The Texas Aerial Robotics control API is designed to simplify the process of wri
 
 ## List of functions. 
 
-### set_destination(<float x>, <float y>, <float z>, <float psi>)
+### set_destination(float x, float y, float z, float psi)
 This function is used to command the drone to fly to a waypoint. These waypoints should be specified in the local reference frame. This is typically defined from the location the drone is launched. Psi is counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 
-returns
+#### returns
 ```
 n/a
 ```
-### Set_heading(<float psi>)
+### Set_heading(float psi)
 This function is used to specify the drone’s heading in the local reference frame. Psi is counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 
-returns
+#### returns
 ```
 n/a
 ```
 ### wait4connect()
 Wait for connect is a function that will hold the program until communication with the FCU is established.
 
-returns
+#### returns
 ```
 0 - connected to fcu 
 -1 - failed to connect to drone
@@ -29,7 +29,7 @@ returns
 ### wait4start()
 Wait for strat will hold the program until the user signals the FCU to enther mode guided. This is typically done from a switch on the safety pilot’s remote or from the ground control station. 
 
-returns
+#### returns
 ```
 0 - mission started
 -1 - failed to start mission
@@ -39,10 +39,10 @@ This function will create a local reference frame based on the starting location
 returns
 0 - frame initialized 
 
-### takeoff(<float height>)
+### takeoff(float height)
 The takeoff function will arm the drone and put the drone in a hover above the initial position. 
 
-returns
+#### returns
 ```
 0 - nominal takeoff 
 -1 - failed to arm 
@@ -51,15 +51,15 @@ returns
 ### check_waypoint_reached()
 This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission. 
 
-returns
+#### returns
 ```
 1 - waypoint reached
 0 - waypoint not reached
 ```
-### init_publisher_subscriber()
-This function is call at the beginning of a program and will start of the communication links to the FCU. 
+### init_publisher_subscriber(ros::NodeHandle nh)
+This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
 
-returns
+#### returns
 ``` 
 n/a
 ```
