@@ -18,10 +18,10 @@
 
 
 
-mavros_msgs::State current_state;
-nav_msgs::Odometry current_pose;
+mavros_msgs::State current_state_g;
+nav_msgs::Odometry current_pose_g;
 geometry_msgs::Pose correction_vector_g;
-geometry_msgs::PoseStamped waypoint;
+geometry_msgs::PoseStamped waypoint_g;
 
 float current_heading_g;
 float local_offset_g;
@@ -37,10 +37,17 @@ ros::ServiceClient land_client;
 ros::ServiceClient set_mode_client;
 ros::ServiceClient takeoff_client;
 
+struct control_api_waypoint{
+	float x;
+	float y;
+	float z;
+	float psi;
+};
+
 //get armed state
 void state_cb(const mavros_msgs::State::ConstPtr& msg)
 {
-  current_state = *msg;
+  current_state_g = *msg;
 }
 void enu_2_local(nav_msgs::Odometry current_pose_enu)
 {
@@ -56,46 +63,22 @@ void enu_2_local(nav_msgs::Odometry current_pose_enu)
 //get current position of drone
 void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
 {
-  current_pose = *msg;
-  enu_2_local(current_pose);
-  float q0 = current_pose.pose.pose.orientation.w;
-  float q1 = current_pose.pose.pose.orientation.x;
-  float q2 = current_pose.pose.pose.orientation.y;
-  float q3 = current_pose.pose.pose.orientation.z;
+  current_pose_g = *msg;
+  enu_2_local(current_pose_g);
+  float q0 = current_pose_g.pose.pose.orientation.w;
+  float q1 = current_pose_g.pose.pose.orientation.x;
+  float q2 = current_pose_g.pose.pose.orientation.y;
+  float q3 = current_pose_g.pose.pose.orientation.z;
   float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) );
   //ROS_INFO("Current Heading %f ENU", psi*(180/M_PI));
   //Heading is in ENU
   current_heading_g = psi*(180/M_PI) - local_offset_g;
   //ROS_INFO("Current Heading %f origin", current_heading_g);
-  //ROS_INFO("x: %f y: %f z: %f", current_pose.pose.pose.position.x, current_pose.pose.pose.position.y, current_pose.pose.pose.position.z);
-}
-// set position to fly to in the gym frame
-void setDestination(float x, float y, float z)
-{
-
-	//transform map to local
-	float deg2rad = (M_PI/180);
-	float Xlocal = x*cos((correction_heading_g + local_offset_g - 90)*deg2rad) - y*sin((correction_heading_g + local_offset_g - 90)*deg2rad);
-	float Ylocal = x*sin((correction_heading_g + local_offset_g - 90)*deg2rad) + y*cos((correction_heading_g + local_offset_g - 90)*deg2rad);
-	float Zlocal = z;
-
-	x = Xlocal + correction_vector_g.position.x;
-	y = Ylocal + correction_vector_g.position.y;
-	z = Zlocal + correction_vector_g.position.z;
-	ROS_INFO("Destination set to x: %f y: %f z: %f origin frame", x, y, z);
-	
-	// float X = x*cos(-local_offset_g*deg2rad) - y*sin(-(local_offset_g)*deg2rad);
-	// float Y = x*sin(-local_offset_g*deg2rad) + y*cos(-(local_offset_g)*deg2rad);
-	// float Z = z;
-	//ROS_INFO("Destination set to x: %f y: %f z: %f ENU frame", X, Y, Z);
-	waypoint.pose.position.x = x;
-	waypoint.pose.position.y = y;
-	waypoint.pose.position.z = z;
-	
+  //ROS_INFO("x: %f y: %f z: %f", current_pose_g.pose.pose.position.x, current_pose_g.pose.pose.position.y, current_pose_g.pose.pose.position.z);
 }
 //set orientation of the drone (drone should always be level) 
 // Heading input should match the ENU coordinate system
-void setHeading(float heading)
+void set_heading(float heading)
 {
   heading = heading + correction_heading_g + local_offset_g;
   float yaw = heading*(M_PI/180);
@@ -114,21 +97,46 @@ void setHeading(float heading)
   float qy = cy * cr * sp + sy * sr * cp;
   float qz = sy * cr * cp - cy * sr * sp;
 
-  waypoint.pose.orientation.w = qw;
-  waypoint.pose.orientation.x = qx;
-  waypoint.pose.orientation.y = qy;
-  waypoint.pose.orientation.z = qz;
+  waypoint_g.pose.orientation.w = qw;
+  waypoint_g.pose.orientation.x = qx;
+  waypoint_g.pose.orientation.y = qy;
+  waypoint_g.pose.orientation.z = qz;
 }
+// set position to fly to in the local frame
+void set_destination(float x, float y, float z, float psi)
+{
+	set_heading(psi);
+	//transform map to local
+	float deg2rad = (M_PI/180);
+	float Xlocal = x*cos((correction_heading_g + local_offset_g - 90)*deg2rad) - y*sin((correction_heading_g + local_offset_g - 90)*deg2rad);
+	float Ylocal = x*sin((correction_heading_g + local_offset_g - 90)*deg2rad) + y*cos((correction_heading_g + local_offset_g - 90)*deg2rad);
+	float Zlocal = z;
+
+	x = Xlocal + correction_vector_g.position.x;
+	y = Ylocal + correction_vector_g.position.y;
+	z = Zlocal + correction_vector_g.position.z;
+	ROS_INFO("Destination set to x: %f y: %f z: %f origin frame", x, y, z);
+	
+	// float X = x*cos(-local_offset_g*deg2rad) - y*sin(-(local_offset_g)*deg2rad);
+	// float Y = x*sin(-local_offset_g*deg2rad) + y*cos(-(local_offset_g)*deg2rad);
+	// float Z = z;
+	//ROS_INFO("Destination set to x: %f y: %f z: %f ENU frame", X, Y, Z);
+	waypoint_g.pose.position.x = x;
+	waypoint_g.pose.position.y = y;
+	waypoint_g.pose.position.z = z;
+	
+}
+
 int wait4connect()
 {
 	ROS_INFO("Waiting for FCU connection");
 	// wait for FCU connection
-	while (ros::ok() && !current_state.connected)
+	while (ros::ok() && !current_state_g.connected)
 	{
 		ros::spinOnce();
 		ros::Duration(0.01).sleep();
 	}
-	if(current_state.connected)
+	if(current_state_g.connected)
 	{
 		ROS_INFO("Connected to FCU");	
 		return 0;
@@ -142,12 +150,12 @@ int wait4connect()
 int wait4start()
 {
 	ROS_INFO("Waiting for user to set mode to GUIDED");
-	while(ros::ok() && current_state.mode != "GUIDED")
+	while(ros::ok() && current_state_g.mode != "GUIDED")
 	{
 	    ros::spinOnce();
 	    ros::Duration(0.01).sleep();
   	}
-  	if(current_state.mode == "GUIDED")
+  	if(current_state_g.mode == "GUIDED")
 	{
 		ROS_INFO("Mode set to GUIDED. Mission starting");
 		return 0;
@@ -161,14 +169,14 @@ int initialize_local_frame()
 	//set the orientation of the local reference frame
 	ROS_INFO("Initializing local coordinate system");
 	local_offset_g = 0;
-	for (int i = 1; i <= 30; ++i) {
+	for (int i = 1; i <= 30; i++) {
 		ros::spinOnce();
 		ros::Duration(0.1).sleep();
 
-		float q0 = current_pose.pose.pose.orientation.w;
-		float q1 = current_pose.pose.pose.orientation.x;
-		float q2 = current_pose.pose.pose.orientation.y;
-		float q3 = current_pose.pose.pose.orientation.z;
+		float q0 = current_pose_g.pose.pose.orientation.w;
+		float q1 = current_pose_g.pose.pose.orientation.x;
+		float q2 = current_pose_g.pose.pose.orientation.y;
+		float q3 = current_pose_g.pose.pose.orientation.z;
 		float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) ); // yaw
 
 		local_offset_g += psi*(180/M_PI);
@@ -182,11 +190,10 @@ int initialize_local_frame()
 int takeoff(float takeoff_alt)
 {
 	//intitialize first waypoint of mission
-	setDestination(0,0,1.5);
-	setHeading(0);
+	set_destination(0,0,takeoff_alt,0);
 	for(int i=0; i<100; i++)
 	{
-		local_pos_pub.publish(waypoint);
+		local_pos_pub.publish(waypoint_g);
 		ros::spinOnce();
 		ros::Duration(0.01).sleep();
 	}
@@ -194,11 +201,11 @@ int takeoff(float takeoff_alt)
 	ROS_INFO("Arming drone");
 	mavros_msgs::CommandBool arm_request;
 	arm_request.request.value = true;
-	while (!current_state.armed && !arm_request.response.success)
+	while (!current_state_g.armed && !arm_request.response.success)
 	{
 		ros::Duration(.1).sleep();
 		arming_client.call(arm_request);
-		local_pos_pub.publish(waypoint);
+		local_pos_pub.publish(waypoint_g);
 	}
 	if(arm_request.response.success)
 	{
@@ -223,19 +230,18 @@ int takeoff(float takeoff_alt)
 }
 int check_waypoint_reached()
 {
-	local_pos_pub.publish(waypoint);
+	local_pos_pub.publish(waypoint_g);
 	
 	float tollorance = .3;
-	float deltaX = abs(waypoint.pose.position.x - current_pose.pose.pose.position.x);
-    float deltaY = abs(waypoint.pose.position.y - current_pose.pose.pose.position.y);
-    float deltaZ = abs(waypoint.pose.position.z - current_pose.pose.pose.position.z);
+	float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
+    float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
+    float deltaZ = abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
     float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
 
     if( dMag < tollorance)
 	{
 		return 1;
 	}else{
-		//std::cout << "dmag "<< dMag << std::endl;
 		return 0;
 	}
 }
