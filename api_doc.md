@@ -11,7 +11,7 @@ This function is used to command the drone to fly to a waypoint. These waypoints
 ```
 n/a
 ```
-### Set_heading(float psi)
+### set_heading(float psi)
 This function is used to specify the drone’s heading in the local reference frame. Psi is counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
 
 #### returns
@@ -55,6 +55,14 @@ This function returns an int of 1 or 0. THis function can be used to check when 
 ```
 1 - waypoint reached
 0 - waypoint not reached
+```
+### land()
+this function changes the mode of the drone to land
+
+#### returns
+```
+1 - mode change successful
+0 - mode change not successful
 ```
 ### init_publisher_subscriber(ros::NodeHandle nh)
 This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
@@ -144,14 +152,15 @@ int main(int argc, char** argv)
 			{
 				set_destination(waypointList[counter].x,waypointList[counter].y,waypointList[counter].z, waypointList[counter].psi);
 				counter++;	
-			}
-			
+			}else{
+				//land after all waypoints are reached
+				land();
+			}	
 		}	
 		
 	}
 	return 0;
 }
-
 
 ```
 ### run example code

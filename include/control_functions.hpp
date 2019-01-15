@@ -245,6 +245,18 @@ int check_waypoint_reached()
 		return 0;
 	}
 }
+int land()
+{
+  mavros_msgs::CommandTOL srv_land;
+  if(land_client.call(srv_land) && srv_land.response.success)
+  {
+    ROS_INFO("land sent %d", srv_land.response.success);
+    return 0;
+  }else{
+    ROS_ERROR("Landing failed");
+    return -1;
+  }
+}
 int init_publisher_subscriber(ros::NodeHandle controlnode)
 {
 	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);

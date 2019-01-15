@@ -64,8 +64,10 @@ int main(int argc, char** argv)
 			{
 				set_destination(waypointList[counter].x,waypointList[counter].y,waypointList[counter].z, waypointList[counter].psi);
 				counter++;	
-			}
-			
+			}else{
+				//land after all waypoints are reached
+				land();
+			}	
 		}	
 		
 	}
