@@ -15,7 +15,18 @@
 #include <vector>
 #include <ros/duration.h>
 #include <iostream>
+/*! \mainpage Control API 
+The Texas Aerial Robotics control API is designed to simplify the process of writing intelligent drone applications. The API is built off of mavros and mavlink. These two packages are middle men between the arducopter flight code on the pixhawk and our code on the jetson. 
 
+Control function documentation can be found under module \ref control_functions
+
+
+*/
+
+/**
+\defgroup control_functions
+This module is designed to make high level control programming more simple. 
+*/
 
 
 mavros_msgs::State current_state_g;
@@ -37,11 +48,15 @@ ros::ServiceClient land_client;
 ros::ServiceClient set_mode_client;
 ros::ServiceClient takeoff_client;
 
+/**
+\ingroup control_functions
+This structure is a convenient way to format waypoints
+*/
 struct control_api_waypoint{
-	float x;
-	float y;
-	float z;
-	float psi;
+	float x; ///< distance in x with respect to your reference frame
+	float y; ///< distance in y with respect to your reference frame
+	float z; ///< distance in z with respect to your reference frame
+	float psi; ///< rotation about the third axis of your reference frame
 };
 
 //get armed state
@@ -78,6 +93,11 @@ void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
 }
 //set orientation of the drone (drone should always be level) 
 // Heading input should match the ENU coordinate system
+/**
+\ingroup control_functions
+This function is used to specify the drone’s heading in the local reference frame. Psi is a counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
+@returns n/a
+*/
 void set_heading(float heading)
 {
   heading = heading + correction_heading_g + local_offset_g;
@@ -103,6 +123,11 @@ void set_heading(float heading)
   waypoint_g.pose.orientation.z = qz;
 }
 // set position to fly to in the local frame
+/**
+\ingroup control_functions
+This function is used to command the drone to fly to a waypoint. These waypoints should be specified in the local reference frame. This is typically defined from the location the drone is launched. Psi is counter clockwise rotation following the drone’s reference frame defined by the x axis through the right side of the drone with the y axis through the front of the drone. 
+@returns n/a
+*/
 void set_destination(float x, float y, float z, float psi)
 {
 	set_heading(psi);
@@ -116,17 +141,18 @@ void set_destination(float x, float y, float z, float psi)
 	y = Ylocal + correction_vector_g.position.y;
 	z = Zlocal + correction_vector_g.position.z;
 	ROS_INFO("Destination set to x: %f y: %f z: %f origin frame", x, y, z);
-	
-	// float X = x*cos(-local_offset_g*deg2rad) - y*sin(-(local_offset_g)*deg2rad);
-	// float Y = x*sin(-local_offset_g*deg2rad) + y*cos(-(local_offset_g)*deg2rad);
-	// float Z = z;
-	//ROS_INFO("Destination set to x: %f y: %f z: %f ENU frame", X, Y, Z);
+
 	waypoint_g.pose.position.x = x;
 	waypoint_g.pose.position.y = y;
 	waypoint_g.pose.position.z = z;
 	
 }
-
+/**
+\ingroup control_functions
+Wait for connect is a function that will hold the program until communication with the FCU is established.
+@returns 0 - connected to fcu 
+@returns -1 - failed to connect to drone
+*/
 int wait4connect()
 {
 	ROS_INFO("Waiting for FCU connection");
@@ -147,6 +173,12 @@ int wait4connect()
 	
 	
 }
+/**
+\ingroup control_functions
+Wait for strat will hold the program until the user signals the FCU to enther mode guided. This is typically done from a switch on the safety pilot’s remote or from the ground control station.
+@returns 0 - mission started
+@returns -1 - failed to start mission
+*/
 int wait4start()
 {
 	ROS_INFO("Waiting for user to set mode to GUIDED");
@@ -164,6 +196,11 @@ int wait4start()
 		return -1;	
 	}
 }
+/**
+\ingroup control_functions
+This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
+@returns 0 - frame initialized
+*/
 int initialize_local_frame()
 {
 	//set the orientation of the local reference frame
@@ -187,6 +224,13 @@ int initialize_local_frame()
 	ROS_INFO("the X' axis is facing: %f", local_offset_g);
 	return 0;
 }
+/**
+\ingroup control_functions
+The takeoff function will arm the drone and put the drone in a hover above the initial position. 
+@returns 0 - nominal takeoff 
+@returns -1 - failed to arm 
+@returns -2 - failed to takeoff
+*/
 int takeoff(float takeoff_alt)
 {
 	//intitialize first waypoint of mission
@@ -228,6 +272,12 @@ int takeoff(float takeoff_alt)
 	sleep(5);
 	return 0; 
 }
+/**
+\ingroup control_functions
+This function returns an int of 1 or 0. THis function can be used to check when to request the next waypoint in the mission. 
+@return 1 - waypoint reached 
+@return 0 - waypoint not reached
+*/
 int check_waypoint_reached()
 {
 	local_pos_pub.publish(waypoint_g);
@@ -245,6 +295,12 @@ int check_waypoint_reached()
 		return 0;
 	}
 }
+/**
+\ingroup control_functions
+this function changes the mode of the drone to land
+@returns 1 - mode change successful
+@returns 0 - mode change not successful
+*/
 int land()
 {
   mavros_msgs::CommandTOL srv_land;
@@ -257,6 +313,11 @@ int land()
     return -1;
   }
 }
+/**
+\ingroup control_functions
+This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
+@returns n/a
+*/
 int init_publisher_subscriber(ros::NodeHandle controlnode)
 {
 	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);

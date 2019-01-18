@@ -1,5 +1,7 @@
 # Control API Usage 
 
+/ref control_functions
+
 The Texas Aerial Robotics control API is designed to simplify the process of writing intelligent drone applications. The API is built off of mavros and mavlink. These two packages are middle men between the arducopter flight code on the pixhawk and our code on the jetson. 
 
 ## List of functions. 
@@ -36,7 +38,8 @@ Wait for strat will hold the program until the user signals the FCU to enther mo
 ```
 ### initialize_local_frame()
 This function will create a local reference frame based on the starting location of the drone. This is typically done right before takeoff. This reference frame is what all of the the set destination commands will be in reference to.
-returns
+
+#### returns
 0 - frame initialized 
 
 ### takeoff(float height)
