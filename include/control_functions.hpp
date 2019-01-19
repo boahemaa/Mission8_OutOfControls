@@ -15,13 +15,7 @@
 #include <vector>
 #include <ros/duration.h>
 #include <iostream>
-/*! \mainpage Control API 
-The Texas Aerial Robotics control API is designed to simplify the process of writing intelligent drone applications. The API is built off of mavros and mavlink. These two packages are middle men between the arducopter flight code on the pixhawk and our code on the jetson. 
 
-Control function documentation can be found under module \ref control_functions
-
-
-*/
 
 /**
 \defgroup control_functions
