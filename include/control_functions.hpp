@@ -3,6 +3,7 @@
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Quaternion.h>
 #include <cmath>
 #include <math.h>
 #include <ros/ros.h>
@@ -35,6 +36,7 @@ float correction_heading_g = 0;
 
 
 ros::Publisher local_pos_pub;
+ros::Publisher local_off_pub;
 ros::Subscriber currentPos;
 ros::Subscriber state_sub;
 ros::ServiceClient arming_client;
@@ -68,6 +70,16 @@ void enu_2_local(nav_msgs::Odometry current_pose_enu)
   float Y = x*sin(local_offset_g*deg2rad) + y*cos(local_offset_g*deg2rad);
   float Z = z;
   //ROS_INFO("Local position %f %f %f",X, Y, Z);
+}
+//get yaw angle
+float quat2yaw(geometry_msgs::Quaternion quat)
+{
+	float q0 = quat.w;
+	float q1 = quat.x;
+	float q2 = quat.y;
+	float q3 = quat.z;
+	float psi = (180/M_PI)*atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) );
+	return psi;
 }
 //get current position of drone
 void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
@@ -140,6 +152,12 @@ void set_destination(float x, float y, float z, float psi)
 	waypoint_g.pose.position.y = y;
 	waypoint_g.pose.position.z = z;
 	
+}
+void spinOffSetPub()
+{
+	std_msgs::Float64 offset_msg;
+	offset_msg.data = local_offset_g;
+	local_off_pub.publish(offset_msg);
 }
 /**
 \ingroup control_functions
@@ -241,6 +259,7 @@ int takeoff(float takeoff_alt)
 	arm_request.request.value = true;
 	while (!current_state_g.armed && !arm_request.response.success)
 	{
+		spinOffSetPub();
 		ros::Duration(.1).sleep();
 		arming_client.call(arm_request);
 		local_pos_pub.publish(waypoint_g);
@@ -274,15 +293,22 @@ This function returns an int of 1 or 0. THis function can be used to check when 
 */
 int check_waypoint_reached()
 {
+	spinOffSetPub();
 	local_pos_pub.publish(waypoint_g);
-	
-	float tollorance = .3;
+
+	float distanceTollorance = .3;
 	float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
     float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
     float deltaZ = abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
-    float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
-
-    if( dMag < tollorance)
+    float dMagDist = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
+    
+    float dcos =  cos((M_PI/180)*current_heading_g) - cos((M_PI/180)*(quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
+    float dsin =  sin((M_PI/180)*current_heading_g) - sin((M_PI/180)*(quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
+    float dHeading = abs(current_heading_g - (quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
+    float headingTollorance = 3;
+    std::cout << "dHeading " << dHeading << std::endl;
+    //std::cout << "current heading " << current_heading_g << "waypoint heading " << (quat2yaw(waypoint_g.pose.orientation) - local_offset_g) << std::endl;
+    if( dMagDist < distanceTollorance && dHeading < headingTollorance)
 	{
 		return 1;
 	}else{
@@ -307,6 +333,7 @@ int land()
     return -1;
   }
 }
+
 /**
 \ingroup control_functions
 This function is called at the beginning of a program and will start of the communication links to the FCU. The function requires the program's ros nodehandle as an input 
@@ -315,6 +342,7 @@ This function is called at the beginning of a program and will start of the comm
 int init_publisher_subscriber(ros::NodeHandle controlnode)
 {
 	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
+	local_off_pub = controlnode.advertise<std_msgs::Float64>("controlnode/local_offset", 10);
 	currentPos = controlnode.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
 	state_sub = controlnode.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	arming_client = controlnode.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");

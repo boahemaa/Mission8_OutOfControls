@@ -38,6 +38,11 @@ int main(int argc, char** argv)
 	nextWayPoint.z = 3;
 	nextWayPoint.psi = 180;
 	waypointList.push_back(nextWayPoint);
+	nextWayPoint.x = 0;
+	nextWayPoint.y = 0;
+	nextWayPoint.z = 3;
+	nextWayPoint.psi = 0;
+	waypointList.push_back(nextWayPoint);
 
   	// wait for FCU connection
 	wait4connect();
