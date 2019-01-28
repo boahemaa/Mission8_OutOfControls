@@ -2,6 +2,7 @@
 #include <mavros_msgs/State.h>
 #include <nav_msgs/Odometry.h>
 #include <geometry_msgs/Pose.h>
+#include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Quaternion.h>
 #include <cmath>
@@ -28,6 +29,7 @@ mavros_msgs::State current_state_g;
 nav_msgs::Odometry current_pose_g;
 geometry_msgs::Pose correction_vector_g;
 geometry_msgs::PoseStamped waypoint_g;
+geometry_msgs::Point initial_pose_enu_g;
 
 float current_heading_g;
 float local_offset_g;
@@ -153,6 +155,11 @@ void set_destination(float x, float y, float z, float psi)
 	waypoint_g.pose.position.z = z;
 	
 }
+/**
+\ingroup control_functions
+This function publishes the angle between the ENU frame and the local reference frame specified by initialize_local_frame(). This usefull if you have other nodes that need this information. 
+@returns n/a
+*/
 void spinOffSetPub()
 {
 	std_msgs::Float64 offset_msg;
@@ -234,6 +241,10 @@ int initialize_local_frame()
 	local_offset_g /= 30;
 	ROS_INFO("Coordinate offset set");
 	ROS_INFO("the X' axis is facing: %f", local_offset_g);
+
+	initial_pose_enu_g.x =  current_pose_g.pose.pose.position.x;
+	initial_pose_enu_g.y =  current_pose_g.pose.pose.position.y;
+
 	return 0;
 }
 /**
@@ -296,17 +307,18 @@ int check_waypoint_reached()
 	spinOffSetPub();
 	local_pos_pub.publish(waypoint_g);
 
+	//check for desired position
 	float distanceTollorance = .3;
 	float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
     float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
     float deltaZ = abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
     float dMagDist = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
     
+    //check for desired heading
     float dcos =  cos((M_PI/180)*current_heading_g) - cos((M_PI/180)*(quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
     float dsin =  sin((M_PI/180)*current_heading_g) - sin((M_PI/180)*(quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
     float dHeading = abs(current_heading_g - (quat2yaw(waypoint_g.pose.orientation) - local_offset_g));
     float headingTollorance = 3;
-    std::cout << "dHeading " << dHeading << std::endl;
     //std::cout << "current heading " << current_heading_g << "waypoint heading " << (quat2yaw(waypoint_g.pose.orientation) - local_offset_g) << std::endl;
     if( dMagDist < distanceTollorance && dHeading < headingTollorance)
 	{
@@ -343,7 +355,7 @@ int init_publisher_subscriber(ros::NodeHandle controlnode)
 {
 	local_pos_pub = controlnode.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
 	local_off_pub = controlnode.advertise<std_msgs::Float64>("controlnode/local_offset", 10);
-	currentPos = controlnode.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
+	currentPos = controlnode.subscribe<nav_msgs::Odometry>("/mavros/local_position/odom", 10, pose_cb);
 	state_sub = controlnode.subscribe<mavros_msgs::State>("mavros/state", 10, state_cb);
 	arming_client = controlnode.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
 	land_client = controlnode.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
