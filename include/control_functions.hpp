@@ -272,17 +272,16 @@ This function returns an int of 1 or 0. THis function can be used to check when 
 @return 1 - waypoint reached 
 @return 0 - waypoint not reached
 */
-int check_waypoint_reached()
+int check_waypoint_reached(float tolerance)
 {
 	local_pos_pub.publish(waypoint_g);
 	
-	float tollorance = .3;
 	float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
     float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
     float deltaZ = abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
     float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
 
-    if( dMag < tollorance)
+    if( dMag < tolerance)
 	{
 		return 1;
 	}else{
