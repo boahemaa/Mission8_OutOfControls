@@ -39,6 +39,7 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
     boost::algorithm::to_lower(v);
     if (v.data == "takeoff") {
             takeoff();
+            moving = true;
     } else if (v.data == "qr code") {
         setDestination(1,1,1, 0);
         moving = true;
@@ -51,6 +52,7 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
 void qr_cb(const vector<std_msgs::Uint32>::ConstPtr& codes){
     qr = *codes;
 }
+
 
 int main(int argc, char** argv)
 {
@@ -69,56 +71,56 @@ int main(int argc, char** argv)
 
     wait4connect();
 
+    ros::spinOnce();
 
-    while(ros::ok()){
+    while(!moving)
+    {
         ros::spinOnce();
-        if(moving){
-            float tollorance = .2;
-            if (local_pos_pub) {
+    }
 
-                for (int i = 10000; ros::ok() && i > 0; --i) {
-                    if(check_waypoint_reached(tollorance)){
-                        break;
-                    }
-                    ros::spinOnce();
-                    ros::Duration(0.5).sleep();
-                    if (i == 1) {
-                        ROS_INFO("Failed to reach destination. Stepping to next task.");
-                    }
-                }
-                ROS_INFO("Done moving foreward.");
+    float tollorance = .2;
+    if (local_pos_pub) {
+
+        for (int i = 10000; ros::ok() && i > 0; --i) {
+            if(check_waypoint_reached(tollorance)){
+                break;
             }
-            //Waiting for QR recognition
-            float offset = .2;
-            for(int i = 10000; qr != NULL && ros::ok() && i > 0; --i){
+            ros::spinOnce();
+            ros::Duration(0.5).sleep();
+            if (i == 1) {
+                ROS_INFO("Failed to reach destination. Stepping to next task.");
+            }
+        }
+        ROS_INFO("Done moving foreward.");
+    }
+    //Waiting for QR recognition
+    float offset = .1;
+    for(int i = 10000; qr != NULL && ros::ok() && i > 0; --i){
+        if(check_waypoint_reached(tollorance)){
+            offset *= -1;
+            setDestination(1 + offset, 1, 1);
+        }
+        ros::spinOnce();
+        ros::Duration(0.02).sleep();
+        if (i == 1) {
+            ROS_INFO("Failed to reach destination. Stepping to next task.");
+        }
+    }
+    ROS_INFO("Done moving foreward.");
+    setDestination(0,0,1, 0);
+    if (local_pos_pub) {
+
+            for (int i = 10000; ros::ok() && i > 0; --i) {
                 if(check_waypoint_reached(tollorance)){
-                    offset *= -1;
-                    setDestination(1 + offset, 1, 1);
+                    break;
                 }
                 ros::spinOnce();
-                ros::Duration(0.02).sleep();
+                ros::Duration(0.5).sleep();
                 if (i == 1) {
                     ROS_INFO("Failed to reach destination. Stepping to next task.");
                 }
             }
             ROS_INFO("Done moving foreward.");
-            setDestination(0,0,0, 0);
-            if (local_pos_pub) {
-
-                    for (int i = 10000; ros::ok() && i > 0; --i) {
-                        if(check_waypoint_reached(tollorance)){
-                            break;
-                        }
-                        ros::spinOnce();
-                        ros::Duration(0.5).sleep();
-                        if (i == 1) {
-                            ROS_INFO("Failed to reach destination. Stepping to next task.");
-                        }
-                    }
-                    ROS_INFO("Done moving foreward.");
-                }
-        }
     }
-
     return 0;
 }
