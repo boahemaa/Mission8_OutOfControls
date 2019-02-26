@@ -1,5 +1,5 @@
+#include <ros/ros.h>
 #include "std_msgs/Float64.h"
-#include <boost/algorithm/string.hpp>
 #include <cmath>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -12,7 +12,6 @@
 #include <mavros_msgs/State.h>
 #include <nav_msgs/Odometry.h>
 #include <ros/duration.h>
-#include <ros/ros.h>
 #include <time.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -28,20 +27,20 @@ geometry_msgs::PoseStamped current_pose;
 geometry_msgs::PoseStamped pose;
 std_msgs::Float64 current_heading;
 float GYM_OFFSET;
-vector<std_msgs::Uint32> qr;
+std_msgs::String qr;
 bool moving = false;
 
 
 // set orientation of the drone (drone should always be level)
 void voice_cb(const std_msgs::String::ConstPtr& voice)
 {
-    std_msgs::string v = *voice;
-    boost::algorithm::to_lower(v);
+    std_msgs::String v = *voice;
+    //boost::algorithm::to_lower(v);
     if (v.data == "takeoff") {
-            takeoff();
+            takeoff(1);
             moving = true;
     } else if (v.data == "qr code") {
-        setDestination(1,1,1, 0);
+        set_destination(1,1,1, 0);
         moving = true;
     } else if (v.data == "land") {
 
@@ -49,21 +48,22 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
     }
 }
 
-void qr_cb(const vector<std_msgs::Uint32>::ConstPtr& codes){
+void qr_cb(const std_msgs::String::ConstPtr& codes){
     qr = *codes;
 }
 
 
 int main(int argc, char** argv)
 {
+	qr.data = "null";
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
     // the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
     init_publisher_subscriber(nh);
-    ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android topic", 10, voice_cb);
-    ros::Subscriber QR = nh.subscribe<vector<std_msgs::Uint32>>("CV Node", 10, qr_cb)
+    ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
+    ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
 
     wait4start();
 
@@ -95,10 +95,10 @@ int main(int argc, char** argv)
     }
     //Waiting for QR recognition
     float offset = .1;
-    for(int i = 10000; qr != NULL && ros::ok() && i > 0; --i){
+    for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
             offset *= -1;
-            setDestination(1 + offset, 1, 1);
+            set_destination(1 + offset, 1, 1, 0);
         }
         ros::spinOnce();
         ros::Duration(0.02).sleep();
@@ -107,7 +107,7 @@ int main(int argc, char** argv)
         }
     }
     ROS_INFO("Done moving foreward.");
-    setDestination(0,0,1, 0);
+    set_destination(0,0,1, 0);
     if (local_pos_pub) {
 
             for (int i = 10000; ros::ok() && i > 0; --i) {
