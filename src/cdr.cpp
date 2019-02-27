@@ -38,9 +38,9 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
     //boost::algorithm::to_lower(v);
     if (v.data == "takeoff") {
             takeoff(1);
-            moving = true;
+            //moving = true;
     } else if (v.data == "qr code") {
-        set_destination(1,1,1, 0);
+        set_destination(0,5,1, 0);
         moving = true;
     } else if (v.data == "land") {
 
@@ -79,7 +79,7 @@ int main(int argc, char** argv)
     }
 
     float tollorance = .2;
-    if (local_pos_pub) {
+    //if (local_pos_pub) {
 
         for (int i = 10000; ros::ok() && i > 0; --i) {
             if(check_waypoint_reached(tollorance)){
@@ -92,13 +92,13 @@ int main(int argc, char** argv)
             }
         }
         ROS_INFO("Done moving foreward.");
-    }
+    //}
     //Waiting for QR recognition
     float offset = .1;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
             offset *= -1;
-            set_destination(1 + offset, 1, 1, 0);
+            set_destination(offset, 5, 1, 0);
         }
         ros::spinOnce();
         ros::Duration(0.02).sleep();
