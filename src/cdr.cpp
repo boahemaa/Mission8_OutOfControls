@@ -94,11 +94,12 @@ int main(int argc, char** argv)
         ROS_INFO("Done moving foreward.");
     //}
     //Waiting for QR recognition
-    float offset = .1;
+    float offset = .3;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
             offset *= -1;
             set_destination(offset, 5, 1, 0);
+            ROS_INFO("Setting destination QR");
         }
         ros::spinOnce();
         ros::Duration(0.02).sleep();
@@ -106,12 +107,13 @@ int main(int argc, char** argv)
             ROS_INFO("Failed to reach destination. Stepping to next task.");
         }
     }
-    ROS_INFO("Done moving foreward.");
+    ROS_INFO("Got QR Code.");
     set_destination(0,0,1, 0);
     if (local_pos_pub) {
 
             for (int i = 10000; ros::ok() && i > 0; --i) {
                 if(check_waypoint_reached(tollorance)){
+                    moving = false;
                     break;
                 }
                 ros::spinOnce();
@@ -121,6 +123,10 @@ int main(int argc, char** argv)
                 }
             }
             ROS_INFO("Done moving foreward.");
+    }
+    while(!moving)
+    {
+        ros::spinOnce();
     }
     return 0;
 }
