@@ -39,7 +39,7 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
     if (v.data == "takeoff") {
             takeoff(1);
             //moving = true;
-    } else if (v.data == "qr code") {
+    } else if (v.data == "QRcode") {
         set_destination(0,5,1, 0);
         moving = true;
     } else if (v.data == "land") {
