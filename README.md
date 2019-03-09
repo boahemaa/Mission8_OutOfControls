@@ -94,6 +94,10 @@ git submodule update --init --recursive
 Install some packages:
 ```
 sudo apt install python-matplotlib python-serial python-wxgtk3.0 python-wxtools python-lxml python-scipy python-opencv ccache gawk git python-pip python-pexpect
+```
+
+Use pip (Python package installer) for some other packages:
+```
 sudo pip2 install future pymavlink MAVProxy
 ```
 
