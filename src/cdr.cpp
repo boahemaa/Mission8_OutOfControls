@@ -29,7 +29,8 @@ std_msgs::Float64 current_heading;
 float GYM_OFFSET;
 std_msgs::String qr;
 bool moving = false;
-
+std_msgs::UInt16 p;
+std::vector<float> c;
 
 // set orientation of the drone (drone should always be level)
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -39,8 +40,12 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
     if (v.data == "takeoff") {
             takeoff(1);
             //moving = true;
-    } else if (v.data == "QRcode") {
-        set_destination(0,5,1, 0);
+
+    } else if (v.data == "qr code") {
+    	c[0] = 0;
+    	c[1] = 5;
+    	c[2] = 1;
+        set_destination(c[0],c[1],c[2], 0);
         moving = true;
     } else if (v.data == "land") {
 
@@ -50,6 +55,14 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
 
 void qr_cb(const std_msgs::String::ConstPtr& codes){
     qr = *codes;
+}
+
+void point_cb(const std_msgs::String::ConstPtr& numPoints){
+	p = *numPoints;
+}
+
+float deltaZ(int p){
+	return .0000000005*[](float x){return x * x * x;}((.2*(p-6400)));
 }
 
 
@@ -64,6 +77,7 @@ int main(int argc, char** argv)
     init_publisher_subscriber(nh);
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
+    ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, )
 
     wait4start();
 
@@ -91,21 +105,22 @@ int main(int argc, char** argv)
                 ROS_INFO("Failed to reach destination. Stepping to next task.");
             }
         }
-        ROS_INFO("Done moving foreward.");
+        ROS_INFO("Done moving forward.");
     //}
     //Waiting for QR recognition
-    float offset = .3;
+    float r = .3;
+    t = 0;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
-            offset *= -1;
-            set_destination(offset, 5, 1, 0);
-            ROS_INFO("Setting destination QR");
+            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ, 0);
+            //ROS_INFO("Setting destination QR");
         }
         ros::spinOnce();
         ros::Duration(0.02).sleep();
         if (i == 1) {
             ROS_INFO("Failed to reach destination. Stepping to next task.");
         }
+        t+=.1;
     }
     ROS_INFO("Got QR Code.");
     set_destination(0,0,1, 0);
