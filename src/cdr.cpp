@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include "std_msgs/Float64.h"
+#include "std_msgs/UInt16.h"
 #include <cmath>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -57,7 +58,7 @@ void qr_cb(const std_msgs::String::ConstPtr& codes){
     qr = *codes;
 }
 
-void point_cb(const std_msgs::String::ConstPtr& numPoints){
+void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
 	p = *numPoints;
 }
 
@@ -77,7 +78,7 @@ int main(int argc, char** argv)
     init_publisher_subscriber(nh);
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
-    ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, )
+    ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
 
     wait4start();
 
@@ -109,10 +110,10 @@ int main(int argc, char** argv)
     //}
     //Waiting for QR recognition
     float r = .3;
-    t = 0;
+    float t = 0;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
-            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ, 0);
+            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ(p.data), 0);
             //ROS_INFO("Setting destination QR");
         }
         ros::spinOnce();
