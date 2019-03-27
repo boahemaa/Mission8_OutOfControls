@@ -30,8 +30,10 @@ std_msgs::Float64 current_heading;
 float GYM_OFFSET;
 std_msgs::String qr;
 bool moving = false;
-std_msgs::UInt16 p;
+
 std::vector<float> c;
+std::vector<UInt8> dxlist;
+std::vector<UInt16> plist;
 
 // set orientation of the drone (drone should always be level)
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -55,11 +57,37 @@ void voice_cb(const std_msgs::String::ConstPtr& voice)
 }
 
 void qr_cb(const std_msgs::String::ConstPtr& codes){
+
     qr = *codes;
 }
 
 void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
-	p = *numPoints;
+	std_msgs::UInt16 p = *numPoints;
+    if(plist.size() < 2){
+        plist.push_back(p);
+    }
+    else{
+        std_msgs::UInt16 tol = 50;
+        std_msgs::UInt16 p_predicted = dxlist[1]*(plist[1] - plist[0])/dxlist[0] - plist[1];
+        if(p > p_predicted-tol && p < p_predicted+tol){
+            dxlist[0] = dxlist[1];
+            dxlist[1] = 1;
+            plist[0] = plist[1];
+            plist[1] = p;
+        }
+        else{
+            p = (3*p_predicted)/5 + (2*p)/5;
+            if(p > p_predicted-tol && p < p_predicted+tol){
+                dxlist[0] = dxlist[1];
+                dxlist[1] = 1;
+                plist[0] = plist[1];
+                plist[1] = p;
+            }
+            else{
+                dxlist[1]++;
+            }
+        }
+    }
 }
 
 float deltaZ(int p){
@@ -70,6 +98,8 @@ float deltaZ(int p){
 int main(int argc, char** argv)
 {
 	qr.data = "null";
+    dxlist[0] = 1;
+    dxlist[1] = 1;
     ros::init(argc, argv, "offb_node");
     ros::NodeHandle nh;
 
@@ -109,11 +139,11 @@ int main(int argc, char** argv)
         ROS_INFO("Done moving forward.");
     //}
     //Waiting for QR recognition
-    float r = .3;
+    float r = .2;
     float t = 0;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
         if(check_waypoint_reached(tollorance)){
-            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ(p.data), 0);
+            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ(plist[1]), 0);
             //ROS_INFO("Setting destination QR");
         }
         ros::spinOnce();
