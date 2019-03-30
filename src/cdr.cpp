@@ -32,8 +32,8 @@ std_msgs::String qr;
 bool moving = false;
 
 std::vector<float> c;
-std::vector<UInt8> dxlist;
 std::vector<UInt16> plist;
+std_msgs::UInt16 p;
 
 // set orientation of the drone (drone should always be level)
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -62,36 +62,21 @@ void qr_cb(const std_msgs::String::ConstPtr& codes){
 }
 
 void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
-	std_msgs::UInt16 p = *numPoints;
-    if(plist.size() < 2){
-        plist.push_back(p);
-    }
-    else{
-        std_msgs::UInt16 tol = 50;
-        std_msgs::UInt16 p_predicted = dxlist[1]*(plist[1] - plist[0])/dxlist[0] - plist[1];
-        if(p > p_predicted-tol && p < p_predicted+tol){
-            dxlist[0] = dxlist[1];
-            dxlist[1] = 1;
-            plist[0] = plist[1];
-            plist[1] = p;
+	std_msgs::UInt16 points = *numPoints;
+    if(plist.size() == 5){
+        std_msgs::UInt32 sum = 0;
+        for(int i = 0; i < 5; i++){
+            sum+=plist[i];
+            plist.pop_back();
         }
-        else{
-            p = (3*p_predicted)/5 + (2*p)/5;
-            if(p > p_predicted-tol && p < p_predicted+tol){
-                dxlist[0] = dxlist[1];
-                dxlist[1] = 1;
-                plist[0] = plist[1];
-                plist[1] = p;
-            }
-            else{
-                dxlist[1]++;
-            }
-        }
+        p = sum/5;
     }
+    plist.push_back(points);
+
 }
 
-float deltaZ(int p){
-	return .0000000005*[](float x){return x * x * x;}((.2*(p-6400)));
+float deltaZ(int n){
+	return .0000000005*[](float x){return x * x * x;}((.2*(n-6400)));
 }
 
 
@@ -142,8 +127,8 @@ int main(int argc, char** argv)
     float r = .2;
     float t = 0;
     for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
-        if(check_waypoint_reached(tollorance)){
-            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ(plist[1]), 0);
+        if(check_waypoint_reached(tollorance) && c[2] + deltaZ(p) >= .5 && c[2] + deltaZ(p) <= 1){
+            set_destination(c[0] + r*cos(t), c[1] + r*sin(t), c[2] + deltaZ(p), 0);
             //ROS_INFO("Setting destination QR");
         }
         ros::spinOnce();
