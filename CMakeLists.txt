@@ -208,5 +208,5 @@ target_link_libraries(estimate ${catkin_LIBRARIES})
 add_executable(newflight src/controlAPIExample.cpp)
 target_link_libraries(newflight ${catkin_LIBRARIES})
 
-add_executable(cdrTest src/cdr.cpp)
-target_link_libraries(cdrTest ${catkin_LIBRARIES})
+add_executable(compTest src/comp.cpp)
+target_link_libraries(compTest ${catkin_LIBRARIES})

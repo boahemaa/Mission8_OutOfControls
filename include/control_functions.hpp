@@ -139,6 +139,8 @@ void set_destination(float x, float y, float z, float psi)
 	waypoint_g.pose.position.x = x;
 	waypoint_g.pose.position.y = y;
 	waypoint_g.pose.position.z = z;
+
+	local_pos_pub.publish(waypoint_g);
 	
 }
 /**

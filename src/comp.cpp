@@ -17,6 +17,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <vector>
+#include <ros/time.h>
 #include "control_functions.hpp"
 
 using namespace std;
@@ -31,7 +32,7 @@ std_msgs::String qr;
 bool moving = false;
 std_msgs::String msg;
 vector<float> c;
-std::vector<UInt16> plist;
+std::vector<std_msgs::UInt16> plist;
 std_msgs::UInt16 p;
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -46,66 +47,78 @@ void qr_cb(const std_msgs::String::ConstPtr& codes){
 }
 
 void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
-	std_msgs::UInt16 points = *numPoints;
+    std_msgs::UInt16 nPoints = *numPoints;
+    int max = 0;
+    int min = 0;
+    //dropping highest and lowest point
     if(plist.size() == 5){
-        std_msgs::UInt32 sum = 0;
+    	for(int i = 1; i < 5; i++){
+    		if(plist[max].data < plist[i].data){
+    			max = i;
+    		}
+    		else if(plist[min].data > plist[i].data){
+    			min = i;
+    		}
+    	}
+    	plist[max].data = 0;
+    	plist[min].data = 0;
+        std_msgs::UInt16 sum;
+        sum.data = 0;
         for(int i = 0; i < 5; i++){
-            sum+=plist[i];
+            sum.data+=plist[i].data;
             plist.pop_back();
         }
-        p = sum/5;
+        p.data = sum.data/3;
     }
-    plist.push_back(points);
-
+    plist.push_back(nPoints);
 }
+
+float deltaZ(const std_msgs::UInt16 n){
+	return .0000000005*[](float x){return x * x * x;}((.2*(n.data-6400)));
+}
+
 
 //to be changed: function will accept a column of a 2D vector
 void flyTo(float x, float y, float z){
+	ROS_INFO("1");
 	set_destination(x,y,z, 0);
 	float tol = .2;
-	//to be added: while loop, time-based timeout, obstacle avoidance
-        for (int i = 10000; ros::ok() && i > 0; --i) {
-            if(check_waypoint_reached(tol)){
-                break;
-            }
-            ros::spinOnce();
-            ros::Duration(0.5).sleep();
-            if (i == 1) {
-                ROS_INFO("Failed to reach destination. Stepping to next task.");
-            }
-        }
-        ROS_INFO("Done moving forward.");
+	ROS_INFO("2");
+	//to be added: obstacle avoidance
+	ros::Time start = ros::Time::now();
+	while(!(check_waypoint_reached(tol)) && (ros::Time::now() - start).toSec() < 60){
+		ros::spinOnce();
+		ros::Duration(0.5).sleep();
+	}
+
+    ROS_INFO("Done moving forward.");
+
 }
 
 //to be changed: function will accept a column of a 2D vector
-void QR(float x, float y, float z){
+void QRcode(float x, float y, float z){
 	float tol = .2;
-	float r = .2;
+	float r = .1;
     float t = 0;
-    //to be added: while loop, time-based timeout, obstacle avoidance
-    for(int i = 10000; qr.data == "null" && ros::ok() && i > 0; --i){
-        if(check_waypoint_reached(tol) && z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
-            set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(p), 0);
-        }
+    
+   	ros::Time start = ros::Time::now();
+    while(qr.data == "null" && (ros::Time::now() - start).toSec() < 60){
+    	//if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
+            set_destination(x + r*cos(t), y + r*sin(t), z,0);// + deltaZ(p), 0);
+        //}
         ros::spinOnce();
-        ros::Duration(0.02).sleep();
-        if (i == 1) {
-            ROS_INFO("Failed to reach destination. Stepping to next task.");
-        }
+        ros::Duration(0.1).sleep();
         t+=.1;
     }
     ROS_INFO("Got QR Code.");
 }
 
-float deltaZ(int n){
-	return .0000000005*[](float x){return x * x * x;}((.2*(n-6400)));
-}
 
 
 int main(int argc, char** argv)
 {
 	qr.data = "null";
-	msg = "nothin";
+	msg.data = "nothin";
     ros::init(argc, argv, "outtaControls");
     ros::NodeHandle nh;
 
@@ -127,17 +140,19 @@ int main(int argc, char** argv)
     while(ros::ok()){
     	ros::spinOnce();
     	//add obstacle avoidance here too 
-    	switch(msg){
-    		case "takeoff": takeoff(1)
-    						break;
-    		case "qr code": c[0] = 0; //This will be later refactored
-					    	c[1] = 5; //to store the locations of 
-					    	c[2] = 1; //all 4 qr codes
-					        flyTo(c[0],c[1], c[2]);
-					        QR(c[0],c[1], c[2]);
-					        break;
-			case "land": land()
-						 break();
+    	if(msg.data == "takeoff"){
+    		takeoff(1);
+    	}
+    	else if(msg.data == "qr code"){
+    		c.push_back(0); //This will be later refactored
+			c.push_back(5); //to store the locations of 
+			c.push_back(1); //all 4 qr codes
+			flyTo(c[0],c[1], c[2]);
+			QRcode(c[0],c[1], c[2]);
+		}
+		else if(msg.data == "land"){	
+			flyTo(0,0,1);
+			land();
     	}
     	msg.data = "nuthin";
     }
