@@ -18,6 +18,9 @@
 #include <stdlib.h>
 #include <vector>
 #include <ros/time.h>
+#include <fcntl.h>
+#include <sys/ioctl.h>
+#include <linux/i2c-dev.h>
 #include "control_functions.hpp"
 
 using namespace std;
@@ -72,6 +75,36 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
     }
     plist.push_back(nPoints);
 }
+
+std_msgs::float32[] getSonars(){
+	vector<std_msgs::Float32> dist;
+
+	char *file = "/dev/i2c-0";
+	int file_i2c;
+	if ((file_i2c = open(filename, O_RDWR)) < 0) {
+       	printf("Failed to open the i2c bus");
+	}
+	int addr = 0x70;
+	for(int i = addr; i<=0x73; i++){
+	    if (ioctl(file_i2c, I2C_SLAVE, i) < 0) {
+	    	printf("Failed to acquire bus access and/or talk to slave.\n");
+		}
+		unsigned char buffer[1];
+		buffer[0] = 0x51;
+		if (write(file_i2c, buffer, 1) != 1) {
+          	printf("Failed to write to the i2c bus.\n");
+		}
+		if (read(file_i2c, buffer, 1) != 1) {
+            printf("Failed to read from the i2c bus.\n");
+                }
+        else {
+            printf("Data read: %s\n", buffer);
+		}
+		dist.push_back(buffer[0]);
+	}
+
+}
+//void sonar_cb()
 
 float deltaZ(const std_msgs::UInt16 n){
 	return .0000000005*[](float x){return x * x * x;}((.2*(n.data-6400)));
