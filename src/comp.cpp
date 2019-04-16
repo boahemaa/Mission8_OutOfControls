@@ -76,7 +76,7 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
     plist.push_back(nPoints);
 }
 
-std_msgs::float32[] getSonars(){
+vector<float> getSonars(){
 	vector<std_msgs::Float32> dist;
 
 	char *file = "/dev/i2c-0";
@@ -103,6 +103,34 @@ std_msgs::float32[] getSonars(){
 		dist.push_back(buffer[0]);
 	}
 
+}
+
+void avoid(){
+	vector<float> d; //order: north, east. south, west
+	vector<int> m; //whether we need to avoid in a certain direction or not
+	d = getSonars();
+	int sum = 0;
+	float tol = 1.0;
+	float k = 1.0;//this is how much you want the drone to move
+	float h = 0.0;
+	for(int i = 0; i < d.size(); i++){
+		if(d[i] < tol){
+			m.push_back(1);
+			sum++;
+		}
+		else{
+			m.push_back(0);
+		}
+	}
+	if(sum == 4){ //if surrounded in all 4 directions
+		if(current_pose_g.pose.pose.position.z >= 1.5){
+			h = -.5;
+		}
+		else{
+			h = .5;
+		}
+	}
+	set_destination(current_pose_g.pose.pose.position.x + k*(m[3]-m[1]), current_pose_g.pose.pose.position.y + k*(m[2]-m[0]), current_pose_g.pose.pose.position.z + h);
 }
 //void sonar_cb()
 
