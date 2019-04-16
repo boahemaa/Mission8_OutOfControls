@@ -77,9 +77,9 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
 }
 
 vector<float> getSonars(){
-	vector<std_msgs::Float32> dist;
+	vector<float> dist;
 
-	char *file = "/dev/i2c-0";
+	char *filename = "/dev/i2c-0";
 	int file_i2c;
 	if ((file_i2c = open(filename, O_RDWR)) < 0) {
        	printf("Failed to open the i2c bus");
@@ -130,7 +130,7 @@ void avoid(){
 			h = .5;
 		}
 	}
-	set_destination(current_pose_g.pose.pose.position.x + k*(m[3]-m[1]), current_pose_g.pose.pose.position.y + k*(m[2]-m[0]), current_pose_g.pose.pose.position.z + h);
+	set_destination(current_pose_g.pose.pose.position.x + k*(m[3]-m[1]), current_pose_g.pose.pose.position.y + k*(m[2]-m[0]), current_pose_g.pose.pose.position.z + h,0);
 }
 //void sonar_cb()
 

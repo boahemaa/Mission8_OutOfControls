@@ -202,8 +202,8 @@ include_directories(
 add_executable(flight src/flight.cpp)
 target_link_libraries(flight ${catkin_LIBRARIES})
 
-add_executable(estimate src/positionEstimate.cpp)
-target_link_libraries(estimate ${catkin_LIBRARIES})
+#add_executable(estimate src/positionEstimate.cpp)
+#target_link_libraries(estimate ${catkin_LIBRARIES})
 
 add_executable(newflight src/controlAPIExample.cpp)
 target_link_libraries(newflight ${catkin_LIBRARIES})
