@@ -190,6 +190,9 @@ int main(int argc, char** argv)
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
     ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
 
+    //delete this after testing
+    avoid();
+
     wait4start();
 
     initialize_local_frame();
@@ -200,7 +203,8 @@ int main(int argc, char** argv)
 
     while(ros::ok()){
     	ros::spinOnce();
-    	//add obstacle avoidance here too 
+    	//add obstacle avoidance here too
+    	avoid(); 
     	if(msg.data == "takeoff"){
     		takeoff(1);
     	}
