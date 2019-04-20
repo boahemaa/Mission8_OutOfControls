@@ -76,8 +76,9 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
     plist.push_back(nPoints);
 }
 
-vector<float> getSonars(){
-	vector<float> dist;
+//vector<float>
+void getSonars(){
+	//vector<float> dist;
 
 	char *filename = "/dev/i2c-0";
 	int file_i2c;
@@ -89,18 +90,24 @@ vector<float> getSonars(){
 	    if (ioctl(file_i2c, I2C_SLAVE, i) < 0) {
 	    	printf("Failed to acquire bus access and/or talk to slave.\n");
 		}
-		unsigned char buffer[1];
+		unsigned char buffer[2];
 		buffer[0] = 0x51;
 		if (write(file_i2c, buffer, 1) != 1) {
-          	printf("Failed to write to the i2c bus.\n");
+          		printf("Failed to write to the i2c bus.\n");
 		}
-		if (read(file_i2c, buffer, 1) != 1) {
-            printf("Failed to read from the i2c bus.\n");
+		ros::Duration(0.2).sleep();
+		buffer[0] = 0xe1;
+		int readRes = read(file_i2c, buffer, 2);
+		if (readRes != 2) {
+			std::cout << std::strerror(errno);
+			printf("\nFailed to read from the i2c bus.\n");
                 }
         else {
-            printf("Data read: %s\n", buffer);
+		long val = buffer[1];
+		val = (((val >> 8) & 0xff) | (val & 0xff));
+            printf("Data read @ %d: %lu cm\n", i, val);
 		}
-		dist.push_back(buffer[0]);
+		//dist.push_back(buffer[0]);
 	}
 
 }
@@ -108,7 +115,10 @@ vector<float> getSonars(){
 void avoid(){
 	vector<float> d; //order: north, east. south, west
 	vector<int> m; //whether we need to avoid in a certain direction or not
-	d = getSonars();
+while(ros::ok()){
+	ros::Duration(1).sleep();	
+	/*d =*/ getSonars();
+}
 	int sum = 0;
 	float tol = 1.0;
 	float k = 1.0;//this is how much you want the drone to move
