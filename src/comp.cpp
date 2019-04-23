@@ -76,9 +76,8 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
     plist.push_back(nPoints);
 }
 
-//vector<float>
-void getSonars(){
-	//vector<float> dist;
+vector<float> getSonars(){
+	vector<float> dist;
 
 	char *filename = "/dev/i2c-0";
 	int file_i2c;
@@ -95,36 +94,29 @@ void getSonars(){
 		if (write(file_i2c, buffer, 1) != 1) {
           		printf("Failed to write to the i2c bus.\n");
 		}
-		ros::Duration(0.2).sleep();
 		buffer[0] = 0xe1;
 		int readRes = read(file_i2c, buffer, 2);
-		if (readRes != 2) {
-			std::cout << std::strerror(errno);
-			printf("\nFailed to read from the i2c bus.\n");
-                }
-        else {
+		while (readRes != 2) {
+			buffer[0] = 0xe1;
+			readRes = read(file_i2c, buffer, 2);
+			ros::Duration(.05).sleep();
+			//std::cout << std::strerror(errno);
+			//printf("\nFailed to read from the i2c bus.\n");
+        }
 		long val = buffer[1];
 		val = (((val >> 8) & 0xff) | (val & 0xff));
-            printf("Data read @ %d: %lu cm\n", i, val);
+            //printf("Data read @ %d: %lu cm\n", i, val);
+		//if sonars are close to each other, add more sleep duration between readings
 		ros::Duration(.3).sleep();
-		}
-		//dist.push_back(buffer[0]);
-		if(i == 0x73){
-			cout << endl;
-			ros::Duration(1.0).sleep();
-		}
+		dist.push_back(val/100.f); //converting ditance from cm to m and long to float
 	}
-
+	return dist;
 }
 
-void avoid(){
+int avoid(){
 	vector<float> d; //order: north, east. south, west
-	vector<int> m; //whether we need to avoid in a certain direction or not
-while(ros::ok()){
-	ros::Duration(1).sleep();	
-	/*d =*/ getSonars();
-}
-	//if sonars are close to each other, add more sleep duration between readings
+	vector<int> m; //whether we need to avoid in a certain direction or not	
+	d = getSonars();
 	int sum = 0;
 	float tol = 1.0;
 	float k = 1.0;//this is how much you want the drone to move
@@ -138,7 +130,8 @@ while(ros::ok()){
 			m.push_back(0);
 		}
 	}
-	if(sum == 4){ //if surrounded in all 4 directions
+	//if surrounded in all 4 directions or in 2 opposite directions
+	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
 		if(current_pose_g.pose.pose.position.z >= 1.5){
 			h = -.5;
 		}
@@ -146,7 +139,14 @@ while(ros::ok()){
 			h = .5;
 		}
 	}
-	set_destination(current_pose_g.pose.pose.position.x + k*(m[3]-m[1]), current_pose_g.pose.pose.position.y + k*(m[2]-m[0]), current_pose_g.pose.pose.position.z + h,0);
+	set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+		current_pose_g.pose.pose.position.z + h, 0);
+	if(sum == 0){
+		return 0;
+	}
+	return 1;
+
 }
 //void sonar_cb()
 
@@ -161,9 +161,12 @@ void flyTo(float x, float y, float z){
 	set_destination(x,y,z, 0);
 	float tol = .2;
 	ROS_INFO("2");
-	//to be added: obstacle avoidance
 	ros::Time start = ros::Time::now();
 	while(!(check_waypoint_reached(tol)) && (ros::Time::now() - start).toSec() < 60){
+		if(!(avoid())){
+			ros::Duration(.5).sleep();
+			set_destination(x,y,z,0);
+		}
 		ros::spinOnce();
 		ros::Duration(0.5).sleep();
 	}
@@ -180,12 +183,21 @@ void QRcode(float x, float y, float z){
     
    	ros::Time start = ros::Time::now();
     while(qr.data == "null" && (ros::Time::now() - start).toSec() < 60){
-    	//if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
-            set_destination(x + r*cos(t), y + r*sin(t), z,0);// + deltaZ(p), 0);
-        //}
+    	if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
+    		if(!(avoid())){
+				ros::Duration(.2).sleep();
+				set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(p), 0);
+				t+=.1;
+			}
+        }
+        else{
+        	if(!(avoid())){
+				ros::Duration(.5).sleep();
+				set_destination(x,y,z,0);
+			}
+        }
         ros::spinOnce();
         ros::Duration(0.1).sleep();
-        t+=.1;
     }
     ROS_INFO("Got QR Code.");
 }
@@ -194,6 +206,8 @@ void QRcode(float x, float y, float z){
 
 int main(int argc, char** argv)
 {
+	ros::Time runStart = ros::Time::now();
+
 	qr.data = "null";
 	msg.data = "nothin";
     ros::init(argc, argv, "outtaControls");
@@ -231,7 +245,7 @@ int main(int argc, char** argv)
 			flyTo(c[0],c[1], c[2]);
 			QRcode(c[0],c[1], c[2]);
 		}
-		else if(msg.data == "land"){	
+		else if(msg.data == "land" || (ros::Time::now() - start).toSec() < 480){	
 			flyTo(0,0,1);
 			land();
     	}
