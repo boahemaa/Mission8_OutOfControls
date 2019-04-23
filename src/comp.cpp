@@ -106,8 +106,13 @@ void getSonars(){
 		long val = buffer[1];
 		val = (((val >> 8) & 0xff) | (val & 0xff));
             printf("Data read @ %d: %lu cm\n", i, val);
+		ros::Duration(.3).sleep();
 		}
 		//dist.push_back(buffer[0]);
+		if(i == 0x73){
+			cout << endl;
+			ros::Duration(1.0).sleep();
+		}
 	}
 
 }
@@ -119,6 +124,7 @@ while(ros::ok()){
 	ros::Duration(1).sleep();	
 	/*d =*/ getSonars();
 }
+	//if sonars are close to each other, add more sleep duration between readings
 	int sum = 0;
 	float tol = 1.0;
 	float k = 1.0;//this is how much you want the drone to move
