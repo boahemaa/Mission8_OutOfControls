@@ -242,7 +242,7 @@ int takeoff(float takeoff_alt)
 	ROS_INFO("Arming drone");
 	mavros_msgs::CommandBool arm_request;
 	arm_request.request.value = true;
-	while (!current_state_g.armed && !arm_request.response.success)
+	while (!current_state_g.armed && !arm_request.response.success && ros::ok())
 	{
 		ros::Duration(.1).sleep();
 		arming_client.call(arm_request);
