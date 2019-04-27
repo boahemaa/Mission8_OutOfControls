@@ -81,6 +81,7 @@ void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
   float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) );
   //ROS_INFO("Current Heading %f ENU", psi*(180/M_PI));
   //Heading is in ENU
+  //IS YAWING COUNTERCLOCKWISE POSITIVE?
   current_heading_g = psi*(180/M_PI) - local_offset_g;
   //ROS_INFO("Current Heading %f origin", current_heading_g);
   //ROS_INFO("x: %f y: %f z: %f", current_pose_g.pose.pose.position.x, current_pose_g.pose.pose.position.y, current_pose_g.pose.pose.position.z);

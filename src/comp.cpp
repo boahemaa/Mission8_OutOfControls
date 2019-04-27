@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include "std_msgs/Float64.h"
 #include "std_msgs/UInt16.h"
+#include "std_msgs/Float32.h"
 #include <cmath>
 #include <geometry_msgs/Pose2D.h>
 #include <geometry_msgs/PoseStamped.h>
@@ -37,6 +38,7 @@ std_msgs::String msg;
 vector<float> c;
 std::vector<std_msgs::UInt16> plist;
 std_msgs::UInt16 p;
+vector<float> simSonar;
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
 {
@@ -79,7 +81,7 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
 vector<float> getSonars(){
 	vector<float> dist;
 
-	char *filename = "/dev/i2c-0";
+	const char *filename = "/dev/i2c-0";
 	int file_i2c;
 	if ((file_i2c = open(filename, O_RDWR)) < 0) {
        	printf("Failed to open the i2c bus");
@@ -148,7 +150,61 @@ int avoid(){
 	return 1;
 
 }
-//void sonar_cb()
+
+
+
+
+//for sim
+void avoid_cb(vector<float> d){
+	vector<int> m; //whether we need to avoid in a certain direction or not	
+	int sum = 0;
+	float tol = 1.0;
+	float k = 1.0;//this is how much you want the drone to move
+	float h = 0.0;
+	for(int i = 0; i < d.size(); i++){
+		if(d[i] < tol){
+			m.push_back(1);
+			sum++;
+		}
+		else{
+			m.push_back(0);
+		}
+	}
+	//if surrounded in all 4 directions or in 2 opposite directions
+	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
+		if(current_pose_g.pose.pose.position.z >= 1.5){
+			h = -.5;
+		}
+		else{
+			h = .5;
+		}
+	}
+	set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+		current_pose_g.pose.pose.position.z + h, 0);
+
+}
+
+void avoid_n_cb(const std_msgs::Float32::ConstPtr& d){
+	std_msgs::Float32 dist = *d;
+	simSonar[0] = dist.data;
+	avoid_cb(simSonar);
+}
+void avoid_e_cb(const std_msgs::Float32::ConstPtr& d){
+	std_msgs::Float32 dist = *d;
+	simSonar[1] = dist.data;
+	avoid_cb(simSonar);
+}
+void avoid_s_cb(const std_msgs::Float32::ConstPtr& d){
+	std_msgs::Float32 dist = *d;
+	simSonar[2] = dist.data;
+	avoid_cb(simSonar);
+}
+void avoid_w_cb(const std_msgs::Float32::ConstPtr& d){
+	std_msgs::Float32 dist = *d;
+	simSonar[3] = dist.data;
+	avoid_cb(simSonar);
+}
 
 float deltaZ(const std_msgs::UInt16 n){
 	return .0000000005*[](float x){return x * x * x;}((.2*(n.data-6400)));
@@ -162,7 +218,7 @@ void flyTo(float x, float y, float z){
 	float tol = .2;
 	ROS_INFO("2");
 	ros::Time start = ros::Time::now();
-	while(!(check_waypoint_reached(tol)) && (ros::Time::now() - start).toSec() < 60){
+	while(!(check_waypoint_reached(tol)) && (ros::Time::now().toSec() - start.toSec() < 60)){
 		if(!(avoid())){
 			ros::Duration(.5).sleep();
 			set_destination(x,y,z,0);
@@ -182,7 +238,7 @@ void QRcode(float x, float y, float z){
     float t = 0;
     
    	ros::Time start = ros::Time::now();
-    while(qr.data == "null" && (ros::Time::now() - start).toSec() < 60){
+    while(qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
     	if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
     		if(!(avoid())){
 				ros::Duration(.2).sleep();
@@ -210,6 +266,11 @@ int main(int argc, char** argv)
 
 	qr.data = "null";
 	msg.data = "nothin";
+	for(int i = 0; i < 4; i++){
+		float a;
+		a = 10.0;
+		simSonar.push_back(a);
+	}
     ros::init(argc, argv, "outtaControls");
     ros::NodeHandle nh;
 
@@ -219,6 +280,10 @@ int main(int argc, char** argv)
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
     ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
+    ros::Subscriber n_sonar = nh.subscribe<std_msgs::Float32>("drone2/sensor/sonar/front", 12, avoid_n_cb);
+    ros::Subscriber e_sonar = nh.subscribe<std_msgs::Float32>("drone2/sensor/sonar/right", 12, avoid_e_cb);
+    ros::Subscriber s_sonar = nh.subscribe<std_msgs::Float32>("drone2/sensor/sonar/back", 12, avoid_s_cb);
+    ros::Subscriber w_sonar = nh.subscribe<std_msgs::Float32>("drone2/sensor/sonar/left", 12, avoid_w_cb);
 
     //delete this after testing
     avoid();
@@ -245,7 +310,7 @@ int main(int argc, char** argv)
 			flyTo(c[0],c[1], c[2]);
 			QRcode(c[0],c[1], c[2]);
 		}
-		else if(msg.data == "land" || (ros::Time::now() - start).toSec() < 480){	
+		else if(msg.data == "land" || (ros::Time::now().toSec() - runStart.toSec() < 480)){	
 			flyTo(0,0,1);
 			land();
     	}
