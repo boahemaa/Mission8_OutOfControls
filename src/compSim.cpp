@@ -38,9 +38,10 @@ bool moving = false;
 std_msgs::String msg;
 vector<float> c;
 std::vector<std_msgs::UInt16> plist;
-std_msgs::UInt16 cv_points;
+std_msgs::UInt16 p;
 vector<float> simSonar;
 int up;
+int a1,a2,a3,a4;
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
 {
@@ -75,14 +76,14 @@ void point_cb(const std_msgs::UInt16::ConstPtr& numPoints){
             sum.data+=plist[i].data;
             plist.pop_back();
         }
-        cv_points.data = sum.data/3;
+        p.data = sum.data/3;
     }
     plist.push_back(nPoints);
 }
 
 vector<float> getSonars(){
 	vector<float> dist;
-	//opening i2c channel
+
 	const char *filename = "/dev/i2c-0";
 	int file_i2c;
 	if ((file_i2c = open(filename, O_RDWR)) < 0) {
@@ -95,23 +96,24 @@ vector<float> getSonars(){
 		}
 		unsigned char buffer[2];
 		buffer[0] = 0x51;
-		//writing to sensor to make it take a reading
 		if (write(file_i2c, buffer, 1) != 1) {
           		printf("Failed to write to the i2c bus.\n");
 		}
 		buffer[0] = 0xe1;
-		//reading in the data from the sensor
 		int readRes = read(file_i2c, buffer, 2);
 		while (readRes != 2) {
 			buffer[0] = 0xe1;
 			readRes = read(file_i2c, buffer, 2);
 			ros::Duration(.05).sleep();
+			//std::cout << std::strerror(errno);
+			//printf("\nFailed to read from the i2c bus.\n");
         }
 		long val = buffer[1];
 		val = (((val >> 8) & 0xff) | (val & 0xff));
+            //printf("Data read @ %d: %lu cm\n", i, val);
 		//if sonars are close to each other, add more sleep duration between readings
-		dist.push_back(val/100.f); //converting ditance from cm to m and long to float
 		ros::Duration(.3).sleep();
+		dist.push_back(val/100.f); //converting ditance from cm to m and long to float
 	}
 	return dist;
 }
@@ -133,9 +135,6 @@ int avoid(){
 			m.push_back(0);
 		}
 	}
-	if(sum == 0){
-		return 0;
-	}
 	//if surrounded in all 4 directions or in 2 opposite directions
 	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
 		if(current_pose_g.pose.pose.position.z >= 1.5){
@@ -148,29 +147,120 @@ int avoid(){
 	set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
 		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
 		current_pose_g.pose.pose.position.z + h, 0);
+	if(sum == 0){
+		return 0;
+	}
 	return 1;
 
+}
+
+
+
+
+//for sim
+void avoid_cb(vector<float> d){
+	vector<int> m; //whether we need to avoid in a certain direction or not	
+	int sum = 0;
+	float tol = 1.2;
+	float k = 1.0;//this is how much you want the drone to move
+	float h = 0.0;
+	for(int i = 0; i < d.size(); i++){
+		if(d[i] < tol){
+			m.push_back(1);
+			sum++;
+		}
+		else{
+			m.push_back(0);
+		}
+	}
+	//if surrounded in all 4 directions or in 2 opposite directions
+	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
+		if(current_pose_g.pose.pose.position.z >= 1.5){
+			h = -.5;
+		}
+		else{
+			h = .5;
+		}
+	}
+	if(sum != 0){
+		set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+		current_pose_g.pose.pose.position.z + h, 0);
+	}
+
+
+}
+
+void avoid_n_cb(const sensor_msgs::Range::ConstPtr& d){
+	if(up){
+		a1++;
+		sensor_msgs::Range dist = *d;
+		simSonar[0] = dist.range;
+		if(a1 == 30){
+			cout << "North: " << simSonar[0] << '\n';
+			a1 = 0;
+		}
+		avoid_cb(simSonar);
+	}
+}
+void avoid_e_cb(const sensor_msgs::Range::ConstPtr& d){
+	if(up){
+		a2++;
+		sensor_msgs::Range dist = *d;
+		simSonar[1] = dist.range;
+		if(a2 == 30){
+			cout << "East: " << simSonar[1] << '\n';
+			a2 = 0;
+		}
+		avoid_cb(simSonar);
+	}
+}
+void avoid_s_cb(const sensor_msgs::Range::ConstPtr& d){
+	if(up){
+		a3++;
+		sensor_msgs::Range dist = *d;
+		simSonar[2] = dist.range;
+		if(a3 == 30){
+			cout << "South: " << simSonar[2] << '\n';
+			a3 = 0;
+		}
+		avoid_cb(simSonar);
+	}}
+void avoid_w_cb(const sensor_msgs::Range::ConstPtr& d){
+	if(up){
+		a4++;
+		sensor_msgs::Range dist = *d;
+		simSonar[3] = dist.range;
+		if(a4 == 30){
+			cout << "West: " << simSonar[3] << '\n';
+			a4 = 0;
+		}
+		avoid_cb(simSonar);
+	}
 }
 
 float deltaZ(const std_msgs::UInt16 n){
 	return .0000000005*[](float x){return x * x * x;}((.2*(n.data-6400)));
 }
 
+
 //to be changed: function will accept a column of a 2D vector
 void flyTo(float x, float y, float z){
+	ROS_INFO("1");
 	set_destination(x,y,z, 0);
 	float tol = .2;
+	ROS_INFO("2");
 	ros::Time start = ros::Time::now();
 	while(ros::ok() && !(check_waypoint_reached(tol)) && (ros::Time::now().toSec() - start.toSec() < 60)){
-		if(!(avoid())){
-			set_destination(x,y,z,0);
+		/*if(!(avoid())){
 			ros::Duration(.5).sleep();
-		}
+			set_destination(x,y,z,0);
+		}*/
 		ros::spinOnce();
-		ros::Duration(0.3).sleep();
+		ros::Duration(0.5).sleep();
 	}
 
-    ROS_INFO("Done moving to (%f, %f, %f).", x, y, z);
+    ROS_INFO("Done moving forward.");
 
 }
 
@@ -182,10 +272,10 @@ void QRcode(float x, float y, float z){
     
    	ros::Time start = ros::Time::now();
     while(ros::ok() && qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
-    	if(z + deltaZ(cv_points) >= .5 && z + deltaZ(cv_points) <= 1){
+    	if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
     		if(!(avoid())){
 				ros::Duration(.2).sleep();
-				set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(cv_points), 0);
+				set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(p), 0);
 				t+=.1;
 			}
         }
@@ -209,6 +299,15 @@ int main(int argc, char** argv)
 	qr.data = "null";
 	msg.data = "nothin";
 	up = 0;
+	for(int i = 0; i < 4; i++){
+		float a;
+		a = 10.0;
+		simSonar.push_back(a);
+	}
+	a1 = 0;
+	a2 = 0;
+	a3 = 0;
+	a4 = 0;
     ros::init(argc, argv, "outtaControls");
     ros::NodeHandle nh;
     ros::Time runStart = ros::Time::now();
@@ -219,7 +318,13 @@ int main(int argc, char** argv)
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
     ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
+    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/front", 4, avoid_n_cb);
+    ros::Subscriber e_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/right", 4, avoid_e_cb);
+    ros::Subscriber s_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/back", 4, avoid_s_cb);
+    ros::Subscriber w_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/left", 4, avoid_w_cb);
 
+    //delete this after testing
+    //avoid();
     wait4connect();
     cout << "connected" << endl;
     wait4start();
@@ -231,9 +336,8 @@ int main(int argc, char** argv)
 
     while(ros::ok()){
     	ros::spinOnce();
-    	if(up){
-    		avoid();
-    	} 
+    	//add obstacle avoidance here too
+    	//avoid(); 
     	if(msg.data == "takeoff"){
     		takeoff(1);
     		up = 1;
@@ -250,7 +354,6 @@ int main(int argc, char** argv)
 			land();
     	}
     	msg.data = "nuthin";
-    	ros::Duration(.2).sleep();
     }
     
     return 0;
