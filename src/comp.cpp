@@ -41,6 +41,7 @@ std::vector<std_msgs::UInt16> plist;
 std_msgs::UInt16 p;
 vector<float> simSonar;
 int up;
+int a1,a2,a3,a4;
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
 {
@@ -160,7 +161,7 @@ int avoid(){
 void avoid_cb(vector<float> d){
 	vector<int> m; //whether we need to avoid in a certain direction or not	
 	int sum = 0;
-	float tol = 1.0;
+	float tol = 1.2;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
 	for(int i = 0; i < d.size(); i++){
@@ -181,36 +182,59 @@ void avoid_cb(vector<float> d){
 			h = .5;
 		}
 	}
-	// //set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
-	// 	current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
-	// 	current_pose_g.pose.pose.position.z + h, 0);
+	if(sum != 0){
+		set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+		current_pose_g.pose.pose.position.z + h, 0);
+	}
+
 
 }
 
 void avoid_n_cb(const sensor_msgs::Range::ConstPtr& d){
-	sensor_msgs::Range dist = *d;
-	simSonar[0] = dist.range;
 	if(up){
+		a1++;
+		sensor_msgs::Range dist = *d;
+		simSonar[0] = dist.range;
+		if(a1 == 30){
+			cout << "North: " << simSonar[0] << '\n';
+			a1 = 0;
+		}
 		avoid_cb(simSonar);
 	}
 }
 void avoid_e_cb(const sensor_msgs::Range::ConstPtr& d){
-	sensor_msgs::Range dist = *d;
-	simSonar[1] = dist.range;
 	if(up){
+		a2++;
+		sensor_msgs::Range dist = *d;
+		simSonar[1] = dist.range;
+		if(a2 == 30){
+			cout << "East: " << simSonar[1] << '\n';
+			a2 = 0;
+		}
 		avoid_cb(simSonar);
 	}
 }
 void avoid_s_cb(const sensor_msgs::Range::ConstPtr& d){
-	sensor_msgs::Range dist = *d;
-	simSonar[2] = dist.range;
 	if(up){
+		a3++;
+		sensor_msgs::Range dist = *d;
+		simSonar[2] = dist.range;
+		if(a3 == 30){
+			cout << "South: " << simSonar[2] << '\n';
+			a3 = 0;
+		}
 		avoid_cb(simSonar);
 	}}
 void avoid_w_cb(const sensor_msgs::Range::ConstPtr& d){
-	sensor_msgs::Range dist = *d;
-	simSonar[3] = dist.range;
 	if(up){
+		a4++;
+		sensor_msgs::Range dist = *d;
+		simSonar[3] = dist.range;
+		if(a4 == 30){
+			cout << "West: " << simSonar[3] << '\n';
+			a4 = 0;
+		}
 		avoid_cb(simSonar);
 	}
 }
@@ -227,7 +251,7 @@ void flyTo(float x, float y, float z){
 	float tol = .2;
 	ROS_INFO("2");
 	ros::Time start = ros::Time::now();
-	while(!(check_waypoint_reached(tol)) && (ros::Time::now().toSec() - start.toSec() < 60)){
+	while(ros::ok() && !(check_waypoint_reached(tol)) && (ros::Time::now().toSec() - start.toSec() < 60)){
 		/*if(!(avoid())){
 			ros::Duration(.5).sleep();
 			set_destination(x,y,z,0);
@@ -247,7 +271,7 @@ void QRcode(float x, float y, float z){
     float t = 0;
     
    	ros::Time start = ros::Time::now();
-    while(qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
+    while(ros::ok() && qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
     	if(z + deltaZ(p) >= .5 && z + deltaZ(p) <= 1){
     		if(!(avoid())){
 				ros::Duration(.2).sleep();
@@ -280,6 +304,10 @@ int main(int argc, char** argv)
 		a = 10.0;
 		simSonar.push_back(a);
 	}
+	a1 = 0;
+	a2 = 0;
+	a3 = 0;
+	a4 = 0;
     ros::init(argc, argv, "outtaControls");
     ros::NodeHandle nh;
     ros::Time runStart = ros::Time::now();
@@ -290,10 +318,10 @@ int main(int argc, char** argv)
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
     ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
-    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/front", 12, avoid_n_cb);
-    ros::Subscriber e_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/right", 12, avoid_e_cb);
-    ros::Subscriber s_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/back", 12, avoid_s_cb);
-    ros::Subscriber w_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/left", 12, avoid_w_cb);
+    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/front", 4, avoid_n_cb);
+    ros::Subscriber e_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/right", 4, avoid_e_cb);
+    ros::Subscriber s_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/back", 4, avoid_s_cb);
+    ros::Subscriber w_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/left", 4, avoid_w_cb);
 
     //delete this after testing
     //avoid();

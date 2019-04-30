@@ -266,7 +266,7 @@ int takeoff(float takeoff_alt)
 		ROS_ERROR("Failed Takeoff");
 		return -2;
 	}
-	sleep(5);
+	sleep(2);
 	return 0; 
 }
 /**
