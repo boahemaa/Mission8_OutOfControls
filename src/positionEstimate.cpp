@@ -69,7 +69,7 @@ int main(int argc, char **argv) {
   static tf2_ros::TransformBroadcaster br;
   geometry_msgs::TransformStamped transformStamped;
   
-  
+  geometry_msgs::PoseStamped currentDroneState_fcu;
 
 	while(ros::ok())
 	{
@@ -92,19 +92,19 @@ int main(int argc, char **argv) {
 
 
     float deg2rad = (M_PI/180);
-    float Xlocal = currentDroneState.pose.position.x*cos((90)*deg2rad) - currentDroneState.pose.position.y*sin((90)*deg2rad);
-    float Ylocal = currentDroneState.pose.position.x*sin((90)*deg2rad) + currentDroneState.pose.position.y*cos((90)*deg2rad);
-    float Zlocal = currentDroneState.pose.position.z;
+    float X_fcu = currentDroneState.pose.position.x*cos((90)*deg2rad) - currentDroneState.pose.position.y*sin((90)*deg2rad);
+    float Y_fcu = currentDroneState.pose.position.x*sin((90)*deg2rad) + currentDroneState.pose.position.y*cos((90)*deg2rad);
+    float Z_fcu = currentDroneState.pose.position.z;
 
 
-    //brVision.sendTransform(tf::StampedTransform(tf::Transform(q_new, tf::Vector3(Xlocal, Ylocal, Zlocal)),ros::Time::now(),"map", "droneVsion"));
+    //brVision.sendTransform(tf::StampedTransform(tf::Transform(q_new, tf::Vector3(X_fcu, Y_fcu, Z_fcu)),ros::Time::now(),"map", "droneVsion"));
 
     transformStamped.header.stamp = ros::Time::now();
     transformStamped.header.frame_id = "map";
     transformStamped.child_frame_id = "droneVsion";
-    transformStamped.transform.translation.x = Xlocal;
-    transformStamped.transform.translation.y = Ylocal;
-    transformStamped.transform.translation.z = Zlocal;
+    transformStamped.transform.translation.x = X_fcu;
+    transformStamped.transform.translation.y = Y_fcu;
+    transformStamped.transform.translation.z = Z_fcu;
     
     transformStamped.transform.rotation.x = q_new.x();
     transformStamped.transform.rotation.y = q_new.y();
@@ -114,6 +114,15 @@ int main(int argc, char **argv) {
     br.sendTransform(transformStamped);
 
 
+    currentDroneState_fcu.header.stamp = ros::Time::now();
+    currentDroneState_fcu.header.frame_id = "droneVsion";
+    currentDroneState_fcu.pose.position.x = X_fcu;
+    currentDroneState_fcu.pose.position.y = Y_fcu;
+    currentDroneState_fcu.pose.position.z = Z_fcu;
+    currentDroneState_fcu.pose.orientation.x = q_new.x();
+    currentDroneState_fcu.pose.orientation.y = q_new.y();
+    currentDroneState_fcu.pose.orientation.z = q_new.z();
+    currentDroneState_fcu.pose.orientation.w = q_new.w();
 
     //EKF pose
     // Tmap2droneVison.setOrigin( tf::Vector3(current_poseEKF.pose.pose.position.x, current_poseEKF.pose.pose.position.y, current_poseEKF.pose.pose.position.z) );
@@ -122,7 +131,7 @@ int main(int argc, char **argv) {
     // Tmap2droneVison.setRotation(tf::Quaternion(current_poseEKF.pose.pose.orientation.x, current_poseEKF.pose.pose.orientation.y, current_poseEKF.pose.pose.orientation.z, current_poseEKF.pose.pose.orientation.w));
     // brEKF.sendTransform(tf::StampedTransform(Tmap2droneEKF, ros::Time::now(), "map", "droneEKF"));
 
-    //pubStamped.publish(currentDroneState);
+    pubStamped.publish(currentDroneState_fcu);
 		ros::spinOnce();
 		rate.sleep();
 	}	
