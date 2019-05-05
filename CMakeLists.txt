@@ -10,6 +10,7 @@ project(out_of_controls)
 find_package(catkin REQUIRED COMPONENTS
   mavros
   tf
+  control_toolbox
 )
 
 ## System dependencies are found with CMake's conventions
@@ -104,7 +105,7 @@ find_package(catkin REQUIRED COMPONENTS
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES flight_pkg
-   CATKIN_DEPENDS mavros
+   CATKIN_DEPENDS mavros control_toolbox
 #  DEPENDS system_lib
 )
 
