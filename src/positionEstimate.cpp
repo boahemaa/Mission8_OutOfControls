@@ -12,6 +12,7 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 geometry_msgs::PoseStamped currentDroneState; 
+geometry_msgs::PoseStamped orb_estimate;
 
 // use ideal odometry from gazebo
 void model_cb(const gazebo_msgs::ModelStates::ConstPtr& msg)
@@ -48,6 +49,10 @@ void pose_cb(const nav_msgs::Odometry::ConstPtr& msg)
   current_poseEKF = *msg;
   // ROS_INFO("x: %f y: %f z: %f", current_pose.pose.pose.position.x, current_pose.pose.pose.position.y, current_pose.pose.pose.position.z);
 }
+void orb_cb(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+  orb_estimate = *msg;
+}
 
 
 int main(int argc, char **argv) {
@@ -58,6 +63,7 @@ int main(int argc, char **argv) {
 	ros::Publisher pubStamped = n.advertise<geometry_msgs::PoseStamped>("/mavros/vision_pose/pose", 10);    
 	ros::Subscriber currentHeading = n.subscribe<gazebo_msgs::ModelStates>("/gazebo/model_states", 10, model_cb);
   ros::Subscriber currentPos = n.subscribe<nav_msgs::Odometry>("mavros/global_position/local", 10, pose_cb);
+  ros::Subscriber orb_sub = n.subscribe<geometry_msgs::PoseStamped>("/Stereo/CamPoseENUFrame", 10, orb_cb);
 	ros::Rate rate(20.0);
 
   //tf::TransformBroadcaster brVision;
