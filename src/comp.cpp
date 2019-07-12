@@ -121,7 +121,7 @@ int avoid(){
 	vector<int> m; //whether we need to avoid in a certain direction or not	
 	d = getSonars();
 	int sum = 0;
-	float tol = 1.0;
+	float tol = 1.5;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
 	for(int i = 0; i < d.size(); i++){
@@ -162,6 +162,9 @@ void flyTo(float x, float y, float z){
 	float tol = .2;
 	ros::Time start = ros::Time::now();
 	while(ros::ok() && !(check_waypoint_reached(tol)) && (ros::Time::now().toSec() - start.toSec() < 60)){
+		if(msg.data == "stop"){
+			break;
+		}
 		if(!(avoid())){
 			set_destination(x,y,z,0);
 			ros::Duration(.5).sleep();
@@ -180,20 +183,23 @@ void QRcode(float x, float y, float z){
 	float r = .1;
     float t = 0;
     
-   	ros::Time start = ros::Time::now();
-    while(ros::ok() && qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
-    	if(z + deltaZ(cv_points) >= .5 && z + deltaZ(cv_points) <= 1){
-    		if(!(avoid())){
-				ros::Duration(.2).sleep();
-				set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(cv_points), 0);
-				t+=.1;
-			}
+   ros::Time start = ros::Time::now();
+   while(ros::ok() && qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
+   	if(msg.data == "stop"){
+		break;
+	}
+	if(z + deltaZ(cv_points) >= .5 && z + deltaZ(cv_points) <= 1){
+		if(!(avoid())){
+			ros::Duration(.2).sleep();
+			set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(cv_points), 0);
+			t+=.1;
+		}
         }
         else{
         	if(!(avoid())){
-				ros::Duration(.5).sleep();
-				set_destination(x,y,z,0);
-			}
+			ros::Duration(.5).sleep();
+			set_destination(x,y,z,0);
+		}
         }
         ros::spinOnce();
         ros::Duration(0.1).sleep();
@@ -209,6 +215,7 @@ int main(int argc, char** argv)
 	qr.data = "null";
 	msg.data = "nothin";
 	up = 0;
+	bool drone1 = true;
     ros::init(argc, argv, "outtaControls");
     ros::NodeHandle nh;
     ros::Time runStart = ros::Time::now();
@@ -239,18 +246,54 @@ int main(int argc, char** argv)
     		up = 1;
     	}
     	else if(msg.data == "qr"){
-    		c.push_back(0); //This will be later refactored
-			c.push_back(8); //to store the locations of 
-			c.push_back(1); //all 4 qr codes
-			flyTo(c[0],c[1], c[2]);
-			QRcode(c[0],c[1], c[2]);
+    		float posQR1[3];
+		if(drone1){
+			posQR1 = {1,8,1};
 		}
-		else if(msg.data == "land"){//} || (ros::Time::now().toSec() - runStart.toSec() < 480)){	
-			flyTo(0,0,1);
-			land();
+		else{
+			posQR1 = {-1,8,1};
+		}
+		flyTo(posQR1[0],posQR1[1],posQR1[2]);
+		QRcode(posQR1[0],posQR1[1],posQR1[2]);
+		
+		//2nd set of qr codes
+		float posQR2[3];
+		if(drone1){
+			posQR2 = {3,8,1};
+		}
+		else{
+			posQR2 = {-3,8,1};
+		}
+		flyTo(posQR2[0],posQR2[1],posQR2[2]);
+		QRcode(posQR2[0],posQR2[1],posQR2[2]);
+	}
+	else if(msg.data == "heal"){
+		flyTo(0,0,1);
+	}
+	else if(msg.data == "left"){
+		flyTo(current_pose_g.pose.pose.position.x-.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);	
+	}
+	else if(msg.data == "right"){
+		flyTo(current_pose_g.pose.pose.position.x+.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);	
+	}
+	else if(msg.data == "forward"){
+		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y+.5,current_pose_g.pose.pose.position.z);	
+	}
+	else if(msg.data == "backward"){
+		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y-.5,current_pose_g.pose.pose.position.z);	
+	}
+	else if(msg.data == "up"){
+		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z+.5);	
+	}
+	else if(msg.data == "down"){
+		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z-.5);	
+	}    
+	else if(msg.data == "land"){//} || (ros::Time::now().toSec() - runStart.toSec() < 480)){	
+		flyTo(0,0,1);
+		land();
     	}
     	msg.data = "nuthin";
-    	ros::Duration(.2).sleep();
+    	ros::Duration(.3).sleep();
     }
     
     return 0;
