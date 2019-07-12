@@ -118,7 +118,8 @@ vector<float> getSonars(){
 
 int avoid(){
 	vector<float> d; //order: north, east. south, west
-	vector<int> m; //whether we need to avoid in a certain direction or not	
+	vector<int> m; //whether we need to avoid in a certain direction or not
+	vector<float> p; //proportion (how close is the object we need to avoid)
 	d = getSonars();
 	int sum = 0;
 	float tol = 1.5;
@@ -127,10 +128,12 @@ int avoid(){
 	for(int i = 0; i < d.size(); i++){
 		if(d[i] < tol){
 			m.push_back(1);
+			p.push_back(tol - d[i]);
 			sum++;
 		}
 		else{
 			m.push_back(0);
+			p.push_back(0);
 		}
 	}
 	if(sum == 0){
@@ -145,8 +148,8 @@ int avoid(){
 			h = .5;
 		}
 	}
-	set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
-		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+	set_destination(current_pose_g.pose.pose.position.x + k*(p[1]+p[3])*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(p[0]+p[2])*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
 		current_pose_g.pose.pose.position.z + h, 0);
 	return 1;
 
