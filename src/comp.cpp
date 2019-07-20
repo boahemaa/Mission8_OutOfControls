@@ -251,10 +251,10 @@ int main(int argc, char** argv)
     	else if(msg.data == "qr"){
     		float posQR1[3];
 		if(drone1){
-			posQR1 = {1,8,1};
+			posQR1 = {6.5, 26, 2};
 		}
 		else{
-			posQR1 = {-1,8,1};
+			posQR1 = {8.5, 26, 2};
 		}
 		flyTo(posQR1[0],posQR1[1],posQR1[2]);
 		QRcode(posQR1[0],posQR1[1],posQR1[2]);
@@ -262,10 +262,10 @@ int main(int argc, char** argv)
 		//2nd set of qr codes
 		float posQR2[3];
 		if(drone1){
-			posQR2 = {3,8,1};
+			posQR2 = {5, 26, 2};
 		}
 		else{
-			posQR2 = {-3,8,1};
+			posQR2 = {10, 26, 2};
 		}
 		flyTo(posQR2[0],posQR2[1],posQR2[2]);
 		QRcode(posQR2[0],posQR2[1],posQR2[2]);
