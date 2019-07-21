@@ -58,9 +58,9 @@ int main(int argc, char **argv)
   // (1/111111) = about 1m;
   
   // Atlanta coords + (1m * 3); // shift x 3m
-  double latitude = 33.776033 + (1/110918.32600995037)*(3);
-  double longitude = -84.39884086 + (1/92626.50754568278)*(0);
-  double altitude = 291;
+  // double latitude = 33.776033 + (1/110918.32600995037)*(3);
+  // double longitude = -84.39884086 + (1/92626.50754568278)*(0);
+  // double altitude = 291;
 
   // Dallas coords + (1m * 3); // shift x 3m
   double latitude = 32.80574473 + (1/110900.46340025407)*(3);
