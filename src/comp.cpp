@@ -140,7 +140,7 @@ int avoid(){
 		return 0;
 	}
 	//if surrounded in all 4 directions or in 2 opposite directions
-	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
+	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){
 		if(current_pose_g.pose.pose.position.z >= 1.5){
 			h = -.5;
 		}
@@ -148,8 +148,8 @@ int avoid(){
 			h = .5;
 		}
 	}
-	set_destination(current_pose_g.pose.pose.position.x + k*(p[1]+p[3])*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
-		current_pose_g.pose.pose.position.y + k*(p[0]+p[2])*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+	set_destination(current_pose_g.pose.pose.position.x + k*(p[1]+p[3])*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)),
+		current_pose_g.pose.pose.position.y + k*(p[0]+p[2])*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)),
 		current_pose_g.pose.pose.position.z + h, 0);
 	return 1;
 
@@ -185,7 +185,7 @@ void QRcode(float x, float y, float z){
 	float tol = .2;
 	float r = .1;
     float t = 0;
-    
+
    ros::Time start = ros::Time::now();
    while(ros::ok() && qr.data == "null" && (ros::Time::now().toSec() - start.toSec() < 60)){
    	if(msg.data == "stop"){
@@ -236,68 +236,72 @@ int main(int argc, char** argv)
     cout << "started" << endl;
     initialize_local_frame();
     cout << "local frame" << endl;
-    
+
     ros::spinOnce();
 
     while(ros::ok()){
     	ros::spinOnce();
     	if(up){
     		avoid();
-    	} 
+    	}
     	if(msg.data == "takeoff"){
     		takeoff(1);
     		up = 1;
     	}
     	else if(msg.data == "qr"){
     		float posQR1[3];
-		if(drone1){
-			posQR1 = {6.5, 26, 2};
+    		posQR1[1] = 26;
+    		posQR1[2] = 2;
+			if(drone1){
+				posQR1[0] = 6.5;
+			}
+			else{
+				posQR1[0] = 8.5;
+			}
+			flyTo(posQR1[0],posQR1[1],posQR1[2]);
+			QRcode(posQR1[0],posQR1[1],posQR1[2]);
+
+			//2nd set of qr codes
+			float posQR2[3];
+			posQR2[1] = 26;
+			posQR2[2] = 2;
+			if(drone1){
+				posQR2[0] = 5;
+			}
+			else{
+				posQR2[0] = 10;
+			}
+			flyTo(posQR2[0],posQR2[1],posQR2[2]);
+			QRcode(posQR2[0],posQR2[1],posQR2[2]);
 		}
-		else{
-			posQR1 = {8.5, 26, 2};
+		else if(msg.data == "heal"){
+			flyTo(0,0,1);
 		}
-		flyTo(posQR1[0],posQR1[1],posQR1[2]);
-		QRcode(posQR1[0],posQR1[1],posQR1[2]);
-		
-		//2nd set of qr codes
-		float posQR2[3];
-		if(drone1){
-			posQR2 = {5, 26, 2};
+		else if(msg.data == "left"){
+			flyTo(current_pose_g.pose.pose.position.x-.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);
 		}
-		else{
-			posQR2 = {10, 26, 2};
+		else if(msg.data == "right"){
+			flyTo(current_pose_g.pose.pose.position.x+.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);
 		}
-		flyTo(posQR2[0],posQR2[1],posQR2[2]);
-		QRcode(posQR2[0],posQR2[1],posQR2[2]);
-	}
-	else if(msg.data == "heal"){
-		flyTo(0,0,1);
-	}
-	else if(msg.data == "left"){
-		flyTo(current_pose_g.pose.pose.position.x-.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);	
-	}
-	else if(msg.data == "right"){
-		flyTo(current_pose_g.pose.pose.position.x+.5,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z);	
-	}
-	else if(msg.data == "forward"){
-		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y+.5,current_pose_g.pose.pose.position.z);	
-	}
-	else if(msg.data == "backward"){
-		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y-.5,current_pose_g.pose.pose.position.z);	
-	}
-	else if(msg.data == "up"){
-		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z+.5);	
-	}
-	else if(msg.data == "down"){
-		flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z-.5);	
-	}    
-	else if(msg.data == "land"){//} || (ros::Time::now().toSec() - runStart.toSec() < 480)){	
-		flyTo(0,0,1);
-		land();
+		else if(msg.data == "forward"){
+			flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y+.5,current_pose_g.pose.pose.position.z);
+		}
+		else if(msg.data == "backward"){
+			flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y-.5,current_pose_g.pose.pose.position.z);
+		}
+		else if(msg.data == "up"){
+			flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z+.5);
+		}
+		else if(msg.data == "down"){
+			flyTo(current_pose_g.pose.pose.position.x,current_pose_g.pose.pose.position.y,current_pose_g.pose.pose.position.z-.5);
+		}
+		else if(msg.data == "land"){//} || (ros::Time::now().toSec() - runStart.toSec() < 480)){
+			flyTo(0,0,1);
+			land();
     	}
     	msg.data = "nuthin";
     	ros::Duration(.3).sleep();
     }
-    
+
     return 0;
 }

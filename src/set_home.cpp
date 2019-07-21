@@ -55,9 +55,17 @@ int main(int argc, char **argv)
   // double latitude = 30.2672;
   // double longitude = -97.7431;
   // double altitude = 165.0;
-  double latitude = 0.0;
-  double longitude = 0.0;
-  double altitude = 0.00;
+  // (1/111111) = about 1m;
+  
+  // Atlanta coords + (1m * 3); // shift x 3m
+  double latitude = 33.776033 + (1/110918.32600995037)*(3);
+  double longitude = -84.39884086 + (1/92626.50754568278)*(0);
+  double altitude = 291;
+
+  // Dallas coords + (1m * 3); // shift x 3m
+  double latitude = 32.80574473 + (1/110900.46340025407)*(3);
+  double longitude = -96.90971375 + (1/93688.32924714219)*(0);
+  double altitude = 127;
 
 
   mavlink::common::msg::SET_GPS_GLOBAL_ORIGIN originMsg;
