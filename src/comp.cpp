@@ -247,6 +247,7 @@ int main(int argc, char** argv)
     	if(msg.data == "takeoff"){
     		takeoff(1);
     		up = 1;
+		ros::Duration(5.0).sleep();
     	}
     	else if(msg.data == "qr"){
     		float posQR1[3];
