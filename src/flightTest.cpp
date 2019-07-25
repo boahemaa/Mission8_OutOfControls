@@ -24,6 +24,7 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include "control_functions.hpp"
+#include <errno.h>
 
 using namespace std;
 
@@ -92,12 +93,14 @@ vector<float> getSonars(){
 	for(int i = addr; i<=0x73; i++){
 	    if (ioctl(file_i2c, I2C_SLAVE, i) < 0) {
 	    	printf("Failed to acquire bus access and/or talk to slave.\n");
+		cout << errno << endl;
 		}
 		unsigned char buffer[2];
 		buffer[0] = 0x51;
 		//writing to sensor to make it take a reading
 		if (write(file_i2c, buffer, 1) != 1) {
           		printf("Failed to write to the i2c bus.\n");
+			cout << errno << endl;
 		}
 		buffer[0] = 0xe1;
 		//reading in the data from the sensor
