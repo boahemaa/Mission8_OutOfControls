@@ -24,6 +24,8 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 #include "control_functions.hpp"
+#include <errno.h>
+#include <string.h>
 
 using namespace std;
 
@@ -87,6 +89,7 @@ vector<float> getSonars(){
 	int file_i2c;
 	if ((file_i2c = open(filename, O_RDWR)) < 0) {
        	printf("Failed to open the i2c bus");
+	cout << strerror(errno) << endl;
 	}
 	int addr = 0x70;
 	for(int i = addr; i<=0x73; i++){
