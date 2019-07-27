@@ -214,3 +214,6 @@ target_link_libraries(compTest ${catkin_LIBRARIES})
 
 add_executable(set_home src/set_home.cpp)
 target_link_libraries(set_home ${catkin_LIBRARIES})
+
+add_executable(1sonar src/1sonar.cpp)
+target_link_libraries(1sonar ${catkin_LIBRARIES})

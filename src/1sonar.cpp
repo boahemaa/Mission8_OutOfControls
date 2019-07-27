@@ -126,20 +126,20 @@ int avoid(){
 	d = getSonars();
 	int sum = 0;
 	float tol = 1.5;
+	float min_aviod_distance = .2;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
-	for(int i = 0; i < d.size(); i++){
-		if(d[i] < tol){
-			m.push_back(1);
-			p.push_back(tol - d[i]);
-			ROS_INFO("Obstacle detected on sonar number %d range %f", i, d[i]);
-			sum++;
-		}
-		else{
-			m.push_back(0);
-			p.push_back(0);
-		}
+	
+	if(d[0] < tol && d[0] > min_aviod_distance){
+		ROS_INFO("Obstacle detected on sonar number 1 range %f", d[0]);
+		float alt = 1.5;
+		set_destination(current_pose_g.pose.pose.position.x , current_pose_g.pose.pose.position.y - 1, alt, 0);
 	}
+	else{
+		m.push_back(0);
+		p.push_back(0);
+	}
+
 	if(sum == 0){
 		return 0;
 	}
@@ -153,10 +153,8 @@ int avoid(){
 	// 		h = .5;
 	// 	}
 	// }
-	float alt = 1.5;
-	set_destination(current_pose_g.pose.pose.position.x + k*(p[1]+p[3])*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)),
-		current_pose_g.pose.pose.position.y + k*(p[0]+p[2])*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)),
-		alt, 0);
+	
+	
 	return 1;
 
 }
