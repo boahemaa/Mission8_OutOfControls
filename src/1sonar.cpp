@@ -129,11 +129,14 @@ int avoid(){
 	float min_aviod_distance = .2;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
-	
+	float back_up_mag = -1.5;
+
+	ROS_INFO("Front sonar return %f m", d[0]);
+
 	if(d[0] < tol && d[0] > min_aviod_distance){
-		ROS_INFO("Obstacle detected on sonar number 1 range %f", d[0]);
+		ROS_INFO("\n Obstacle detected on sonar number 1 range %f \n AVIODING \n SKRT SKRT \n", d[0]);
 		float alt = 1.5;
-		set_destination(current_pose_g.pose.pose.position.x , current_pose_g.pose.pose.position.y - 1, alt, 0);
+		set_destination(current_pose_g.pose.pose.position.x + back_up_mag*sin(current_heading_g) , current_pose_g.pose.pose.position.y + back_up_mag*cos(current_heading_g) , alt, 0);
 	}
 	else{
 		m.push_back(0);
