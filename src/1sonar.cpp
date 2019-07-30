@@ -129,7 +129,7 @@ int avoid(){
 	float min_aviod_distance = .4;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
-	float back_up_mag = -3;
+	float back_up_mag = -1.5;
 
 	ROS_INFO("Front sonar return %f m", d[0]);
 
@@ -137,6 +137,9 @@ int avoid(){
 		ROS_INFO("\n Obstacle detected on sonar number 1 range %f \n AVIODING \n SKRT SKRT \n", d[0]);
 		float alt = 1;
 		set_destination(current_pose_g.pose.pose.position.x + back_up_mag*sin(current_heading_g) , current_pose_g.pose.pose.position.y + back_up_mag*cos(current_heading_g) , alt, 0);
+		while(ros::ok() && !(check_waypoint_reached(.2))) {
+			ros::Duration(.2).sleep();
+		}
 	}
 	else{
 		m.push_back(0);
@@ -156,8 +159,8 @@ int avoid(){
 	// 		h = .5;
 	// 	}
 	// }
-	
-	
+
+
 	return 1;
 
 }
@@ -245,10 +248,10 @@ int main(int argc, char** argv)
     cout << "local frame" << endl;
 
     ros::spinOnce();
-    
+
     float takeoff_alt = 1;
     takeoff(takeoff_alt);
-    
+
     set_destination(0, 0, takeoff_alt, 0);
 
     while(ros::ok()){
