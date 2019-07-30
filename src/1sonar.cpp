@@ -91,7 +91,7 @@ vector<float> getSonars(){
        	printf("Failed to open the i2c bus");
 	}
 	int addr = 0x70;
-	for(int i = addr; i<=0x73; i++){
+	for(int i = addr; i<=0x70; i++){
 	    if (ioctl(file_i2c, I2C_SLAVE, i) < 0) {
 	    	printf("Failed to acquire bus access and/or talk to slave.\n");
 		cout << strerror(errno) << endl;
@@ -126,16 +126,16 @@ int avoid(){
 	d = getSonars();
 	int sum = 0;
 	float tol = 1.5;
-	float min_aviod_distance = .2;
+	float min_aviod_distance = .4;
 	float k = 1.0;//this is how much you want the drone to move
 	float h = 0.0;
-	float back_up_mag = -1.5;
+	float back_up_mag = -3;
 
 	ROS_INFO("Front sonar return %f m", d[0]);
 
 	if(d[0] < tol && d[0] > min_aviod_distance){
 		ROS_INFO("\n Obstacle detected on sonar number 1 range %f \n AVIODING \n SKRT SKRT \n", d[0]);
-		float alt = 1.5;
+		float alt = 1;
 		set_destination(current_pose_g.pose.pose.position.x + back_up_mag*sin(current_heading_g) , current_pose_g.pose.pose.position.y + back_up_mag*cos(current_heading_g) , alt, 0);
 	}
 	else{
@@ -246,7 +246,7 @@ int main(int argc, char** argv)
 
     ros::spinOnce();
     
-    float takeoff_alt = 1.5;
+    float takeoff_alt = 1;
     takeoff(takeoff_alt);
     
     set_destination(0, 0, takeoff_alt, 0);
