@@ -218,5 +218,8 @@ target_link_libraries(set_home ${catkin_LIBRARIES})
 add_executable(1sonar src/1sonar.cpp)
 target_link_libraries(1sonar ${catkin_LIBRARIES})
 
+add_executable(1sonarNoAPI src/1sonarNoAPI.cpp)
+target_link_libraries(1sonarNoAPI ${catkin_LIBRARIES})
+
 add_executable(flightTest src/flightTest.cpp)
 target_link_libraries(flightTest ${catkin_LIBRARIES})
