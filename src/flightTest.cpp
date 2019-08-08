@@ -44,6 +44,42 @@ std_msgs::UInt16 cv_points;
 vector<float> simSonar;
 int up;
 
+void avoid_cb(vector<float> d){
+	vector<int> m; //whether we need to avoid in a certain direction or not	
+	int sum = 0;
+	float tol = 1.0;
+	float k = 1.0;//this is how much you want the drone to move
+	float h = 0.0;
+	for(int i = 0; i < d.size(); i++){
+		if(d[i] < tol){
+			m.push_back(1);
+			sum++;
+		}
+		else{
+			m.push_back(0);
+		}
+	}
+	//if surrounded in all 4 directions or in 2 opposite directions
+	if(sum == 4 || (m[3]-m[1] == 0 && m[2]-m[0] != 0) || (m[2]-m[0] == 0 && m[3]-m[1] != 0)){ 
+		if(current_pose_g.pose.pose.position.z >= 1.5){
+			h = -.5;
+		}
+		else{
+			h = .5;
+		}
+	}
+	set_destination(current_pose_g.pose.pose.position.x + k*((m[3]-m[1])*cos(current_heading_g) + (m[2]-m[0])*sin(current_heading_g)), 
+		current_pose_g.pose.pose.position.y + k*(-1*(m[3]-m[1])*sin(current_heading_g) + (m[2]-m[0])*cos(current_heading_g)), 
+		current_pose_g.pose.pose.position.z + h, 0);
+
+}
+void avoid_n_cb(const sensor_msgs::Range::ConstPtr& d){
+	sensor_msgs::Range dist = *d;
+	simSonar[0] = dist.range;
+	if(up){
+		avoid_cb(simSonar);
+	}
+}
 void voice_cb(const std_msgs::String::ConstPtr& voice)
 {
     std_msgs::String v = *voice;
@@ -118,6 +154,7 @@ vector<float> getSonars(){
 	}
 	return dist;
 }
+
 
 int avoid(){
 	vector<float> d; //order: north, east. south, west
@@ -235,6 +272,7 @@ int main(int argc, char** argv)
     ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
     ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
     ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
+    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/front", 12, avoid_n_cb);
 
     wait4connect();
     cout << "connected" << endl;
@@ -252,7 +290,7 @@ int main(int argc, char** argv)
 
     while(ros::ok()){
     	ros::spinOnce();
-    	avoid();
+    	//avoid();
       ros::Duration(.5).sleep();
     }
 
