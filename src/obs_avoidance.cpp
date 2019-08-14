@@ -27,7 +27,7 @@
 #include <errno.h>
 #include <string.h>
 
-namespace std;
+using namespace std;
 //Going to create a node that outputs the sonars to match the same as the sim so testing stuff works
 //
 
@@ -70,7 +70,7 @@ vector<float> getSonars(){
 }
 
 
-int main(int arg, char** argv){
+int main(int argc, char** argv){
 	ros::init(argc, argv, "Get Sonars");
     ros::NodeHandle nh;
 
@@ -80,16 +80,17 @@ int main(int arg, char** argv){
 	ros::Publisher e_sonar_pub = nh.advertise<sensor_msgs::Range>("drone1/sensor/sonar/right", 12);
 	ros::Publisher s_sonar_pub = nh.advertise<sensor_msgs::Range>("drone1/sensor/sonar/back", 12);
 	ros::Publisher w_sonar_pub = nh.advertise<sensor_msgs::Range>("drone1/sensor/sonar/left", 12);
-	sonar_msgs::Range n_sonar_msg;
-	sonar_msgs::Range e_sonar_msg;
-	sonar_msgs::Range s_sonar_msg;
-	sonar_msgs::Range w_sonar_msg;
+	sensor_msgs::Range n_sonar_msg;
+	sensor_msgs::Range e_sonar_msg;
+	sensor_msgs::Range s_sonar_msg;
+	sensor_msgs::Range w_sonar_msg;
 
+	ros::Rate rate(20.0);
 
 	while (ros::ok()){
     	ros::spinOnce();
     	vector<float> sonarsgot = getSonars();
-    	
+
 		n_sonar_msg.range = sonarsgot[0];
 		e_sonar_msg.range = sonarsgot[1];
 		s_sonar_msg.range = sonarsgot[2];

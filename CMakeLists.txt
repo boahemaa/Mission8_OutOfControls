@@ -223,3 +223,6 @@ target_link_libraries(1sonarNoAPI ${catkin_LIBRARIES})
 
 add_executable(flightTest src/flightTest.cpp)
 target_link_libraries(flightTest ${catkin_LIBRARIES})
+
+add_executable(obs_avoidance src/obs_avoidance.cpp)
+target_link_libraries(obs_avoidance ${catkin_LIBRARIES})
