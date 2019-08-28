@@ -43,7 +43,7 @@ std::vector<std_msgs::UInt16> plist;
 std_msgs::UInt16 cv_points;
 vector<float> sonars{3};
 int up;
-int drone_mode =0; //0 = on the ground, 1 = in air, 2 = avoiding
+int drone_mode; //0 = on the ground, 1 = in air, 2 = avoiding
 
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -105,7 +105,7 @@ int avoid(){
 		}
 	}
 	if(sum == 0){
-		drone_mode = 1;
+		drone_mode = 1; //1 = in air
 	}
 	// //if surrounded in all 4 directions or in 2 opposite directions
 	// if(sum == 4 || (avoid_obs[3]-avoid_obs[1] == 0 && avoid_obs[2]-avoid_obs[0] != 0) || (avoid_obs[2]-avoid_obs[0] == 0 && avoid_obs[3]-avoid_obs[1] != 0)){
@@ -117,12 +117,13 @@ int avoid(){
 	// 	}
 	// }
 
-	//Need to update postition accourdingly
+	//Need to update postition accourdingly 
+	drone_mode = 2; //2 = avoiding // might be worth putting in a function that leaves this as avoiding until checkpoint reached
 	set_destination(current_pose_g.pose.pose.position.x + move_mag*(proportion[1]+proportion[3])*((avoid_obs[3]-avoid_obs[1])*cos(current_heading_g) + (avoid_obs[2]-avoid_obs[0])*sin(current_heading_g)),
 		current_pose_g.pose.pose.position.y + move_mag*(proportion[0]+proportion[2])*(-1*(avoid_obs[3]-avoid_obs[1])*sin(current_heading_g) + (avoid_obs[2]-avoid_obs[0])*cos(current_heading_g)),
 		current_pose_g.pose.pose.position.z + h, 0);
-	drone_mode = 2;
-	cout<< "SKKKKKRRRRRTTTT SKKKKKRRRRRTTTT\n";
+	
+	ROS_INFO("SKKKKKRRRRRTTTT SKKKKKRRRRRTTTT\n");
 
 }
 
@@ -156,7 +157,7 @@ void flyTo(float x, float y, float z){
 		if(msg.data == "stop"){
 			break;
 		}
-		// if(!(avoid())){
+		// if(!(avoid())){  //replace with the drone_mode function
 		// 	set_destination(x,y,z,0);
 		// 	ros::Duration(.5).sleep();
 		// }
@@ -181,7 +182,7 @@ void QRcode(float x, float y, float z){
 	}
 	if(z + deltaZ(cv_points) >= .5 && z + deltaZ(cv_points) <= 1){
 		//idk if it matters but it might be faster to just change a global variable every time insteasd of rerunning avoid
-		if(drone_mode== 1){
+		if(drone_mode == 1){
 			ros::Duration(.2).sleep();
 			set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(cv_points), 0);
 			t+=.1;
@@ -207,6 +208,8 @@ int main(int argc, char** argv)
 	qr.data = "null";
 	msg.data = "nothin";
 	up = 0;
+	drone_mode = 0; //0 = on the ground, 1 = in air, 2 = avoiding
+
 	for(int i = 0; i < 4; i++){
 		float a;
 		a = 10.0;
@@ -237,15 +240,15 @@ int main(int argc, char** argv)
 
 	takeoff(1);
 	sleep(10);
-	up = 1;
-	cout<< "Drone Mode changed\n";
+	up = 1; //1 = in air
+	drone_mode = 1; 
 
     ros::spinOnce();
 
     while(ros::ok()){
 		
     	ros::spinOnce();
-    	if(up == 1){
+    	if(drone_mode != 0){
     		avoid();
     	}
     	if(msg.data == "takeoff"){
