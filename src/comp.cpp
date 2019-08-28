@@ -43,7 +43,7 @@ std::vector<std_msgs::UInt16> plist;
 std_msgs::UInt16 cv_points;
 vector<float> sonars{3};
 int up;
-vector<float> simSonar;
+int drone_mode =0; //0 = on the ground, 1 = in air, 2 = avoiding
 
 
 void voice_cb(const std_msgs::String::ConstPtr& voice)
@@ -105,7 +105,7 @@ int avoid(){
 		}
 	}
 	if(sum == 0){
-		return 0;
+		drone_mode = 1;
 	}
 	// //if surrounded in all 4 directions or in 2 opposite directions
 	// if(sum == 4 || (avoid_obs[3]-avoid_obs[1] == 0 && avoid_obs[2]-avoid_obs[0] != 0) || (avoid_obs[2]-avoid_obs[0] == 0 && avoid_obs[3]-avoid_obs[1] != 0)){
@@ -118,12 +118,11 @@ int avoid(){
 	// }
 
 	//Need to update postition accourdingly
-
-	//should be using fly to?
 	set_destination(current_pose_g.pose.pose.position.x + move_mag*(proportion[1]+proportion[3])*((avoid_obs[3]-avoid_obs[1])*cos(current_heading_g) + (avoid_obs[2]-avoid_obs[0])*sin(current_heading_g)),
 		current_pose_g.pose.pose.position.y + move_mag*(proportion[0]+proportion[2])*(-1*(avoid_obs[3]-avoid_obs[1])*sin(current_heading_g) + (avoid_obs[2]-avoid_obs[0])*cos(current_heading_g)),
 		current_pose_g.pose.pose.position.z + h, 0);
-	return 1;
+	drone_mode = 2;
+	cout<< "SKKKKKRRRRRTTTT SKKKKKRRRRRTTTT\n";
 
 }
 
@@ -182,14 +181,14 @@ void QRcode(float x, float y, float z){
 	}
 	if(z + deltaZ(cv_points) >= .5 && z + deltaZ(cv_points) <= 1){
 		//idk if it matters but it might be faster to just change a global variable every time insteasd of rerunning avoid
-		if(!(avoid())){
+		if(drone_mode== 1){
 			ros::Duration(.2).sleep();
 			set_destination(x + r*cos(t), y + r*sin(t), z + deltaZ(cv_points), 0);
 			t+=.1;
 		}
         }
         else{
-        	if(!(avoid())){
+        	if(drone_mode == 1){
 			ros::Duration(.5).sleep();
 			set_destination(x,y,z,0);
 		}
@@ -221,13 +220,13 @@ int main(int argc, char** argv)
     // the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
     init_publisher_subscriber(nh);
-    //ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
-    //ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
-    //ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
-    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone2/sensor/sonar/front", 12, avoid_n_cb);
-    ros::Subscriber e_sonar = nh.subscribe<sensor_msgs::Range>("drone2/sensor/sonar/right", 12, avoid_e_cb);
-	ros::Subscriber s_sonar = nh.subscribe<sensor_msgs::Range>("drone2/sensor/sonar/back", 12, avoid_s_cb);
-	ros::Subscriber w_sonar = nh.subscribe<sensor_msgs::Range>("drone2/sensor/sonar/left", 12, avoid_w_cb);
+    ros::Subscriber voiceRecognition = nh.subscribe<std_msgs::String>("Android", 10, voice_cb);
+    ros::Subscriber QR = nh.subscribe<std_msgs::String>("CV", 10, qr_cb);
+    ros::Subscriber points = nh.subscribe<std_msgs::UInt16>("Points", 5, point_cb);
+    ros::Subscriber n_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/front", 12, avoid_n_cb);
+    ros::Subscriber e_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/right", 12, avoid_e_cb);
+	ros::Subscriber s_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/back", 12, avoid_s_cb);
+	ros::Subscriber w_sonar = nh.subscribe<sensor_msgs::Range>("drone1/sensor/sonar/left", 12, avoid_w_cb);
     
     wait4connect();
     cout << "connected" << endl;
@@ -239,17 +238,19 @@ int main(int argc, char** argv)
 	takeoff(1);
 	sleep(10);
 	up = 1;
+	cout<< "Drone Mode changed\n";
 
     ros::spinOnce();
 
     while(ros::ok()){
+		
     	ros::spinOnce();
-    	if(up){
+    	if(up == 1){
     		avoid();
     	}
     	if(msg.data == "takeoff"){
     		takeoff(1);
-    		up = 1;
+    		drone_mode = 1;
 		ros::Duration(5.0).sleep();
     	}
     	else if(msg.data == "qr"){
