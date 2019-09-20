@@ -2,5 +2,7 @@ language: cpp
 
 dist : bionic
 
-script : catkin_build
+install:
+
+script : catkin build
 
