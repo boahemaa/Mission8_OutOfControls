@@ -1,4 +1,6 @@
-language: python
+language: cpp
 
 dist : bionic
+
+script : catkin_build
 
