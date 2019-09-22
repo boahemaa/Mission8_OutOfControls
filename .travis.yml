@@ -2,7 +2,7 @@ language: cpp
 
 dist : bionic
 
-install: python-wstool python-rosinstall-generator python-catkin-tools
+install: make
 
 script : catkin build
 
