@@ -8,9 +8,8 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y python-wstool python-rosinstall-generator python-catkin-tools
   - mkdir -p ~/catkin_ws/src
-  - ~/catkin_ws
-  - catkin init
   - cd ~/catkin_ws
+  - catkin init
   - wstool init ~/catkin_ws/src
   - rosinstall_generator --upstream mavros | tee /tmp/mavros.rosinstall
   - rosinstall_generator mavlink | tee -a /tmp/mavros.rosinstall
