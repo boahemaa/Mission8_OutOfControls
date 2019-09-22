@@ -2,7 +2,8 @@ language: cpp
 
 dist : bionic
 
-install: make
+before_install:
+  sudo apt-get install -y python-wstool python-rosinstall-generator python-catkin-tools
 
 script : catkin build
 
