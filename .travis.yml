@@ -6,9 +6,8 @@ before_install:
   - sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list'
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
   - sudo apt-key adv --keyserver 'hkp://keyserver.ubuntu.com:80' --recv-key C1CF6E31E6BADE8868B172B4F42ED6FBAB17C654
-  - sudo apt install ros-melodic-ros-base
   - sudo apt-get update
-  - sudo apt-get install -y python-rosdep2 python-wstool python-rosinstall-generator python-catkin-tools
+  - sudo apt-get install -y python-rosdep2 python-wstool python-rosinstall-generator python-catkin-tools ros-melodic-ros-base
   - mkdir -p ~/catkin_ws/src
   - cd ~/catkin_ws
   - catkin init
