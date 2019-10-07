@@ -63,8 +63,8 @@ void set_destination_local(vector<float> vect)
 	tx = vect[0] * cos((-1)*current_heading_g) + vect[1] * sin((-1)*current_heading_g);
 	ty = -vect[0]sin(current_heading_g*(-1)) + vect[1]cos((-1)*current_heading_g);
 	float x = current_pose.pose.position.x + vect[0] * Tx;
-	float y = current_pose.pose.position.y + vect[1]Ty;
-	float z = current_pose.pose.position.z;
+	float y = current_pose.pose.position.y + vect[1] * Ty;
+	float z = current_pose.pose.position.z + vect[2];
 	set_destination(x, y, z, current_heading_g + vect_angle);
 
 
