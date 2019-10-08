@@ -66,6 +66,23 @@ void flyTo(float x, float y, float z){
 
 }
 
+/*
+tracking_cb 
+inputs: ros array which contains xzy vector in drone's reference frame 
+outputs: nothing n/a
+postcondition: the drone is moving towards the new destion calculated
+*/
+void tracking_cb(const std_msgs::Float32::ConstPtr& tracking){
+	//input: 
+	information = *tracking;
+	vector location;
+	location.push_back(information.data[0].data);
+	location.push_back(information.data[1].data);
+	location.push_back(information.data[2].data);
+	set_destination_local(location);
+
+
+}
 
 int main(int argc, char** argv)
 {
@@ -79,6 +96,11 @@ int main(int argc, char** argv)
     ros::Rate rate(20.0);
     init_publisher_subscriber(nh);
     
+
+
+    ros::Subscriber points = nh.subscribe<std_msgs::String>("Points", 5, tracking_cb);
+
+
     wait4connect();
     cout << "connected" << endl;
     wait4start();
@@ -87,7 +109,7 @@ int main(int argc, char** argv)
     cout << "local frame" << endl;
 
     ros::spinOnce();
-    
+
 
     return 0;
 }
