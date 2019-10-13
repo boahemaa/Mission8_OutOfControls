@@ -23,8 +23,8 @@ before_install:
 
 
 install:
-  git clone --depth=2 --branch=master https://github.com/Texas-Aerial-Robotics/Mission8_OutOfControls.git
-  git clone --depth=2 --branch=master https://github.com/mavlink/mavros.git
+  - git clone --depth=2 --branch=master https://github.com/Texas-Aerial-Robotics/Mission8_OutOfControls.git
+  - git clone --depth=2 --branch=master https://github.com/mavlink/mavros.git
 script:
         source ~/catkin_ws/devel/setup.bash
         catkin build
