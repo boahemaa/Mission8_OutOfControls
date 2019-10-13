@@ -20,7 +20,6 @@ before_install:
   - sudo rosdep init
   - rosdep update
   - rosdep install --from-paths src --ignore-src --rosdistro `echo $ROS_DISTRO` -y
-  - catkin build
   - source ~/catkin_ws/devel/setup.bash
 install:
   git clone --depth=2 --branch=master https://github.com/Texas-Aerial-Robotics/Mission8_OutOfControls.git
