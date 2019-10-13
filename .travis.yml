@@ -17,10 +17,14 @@ before_install:
   - rosinstall_generator mavlink | tee -a /tmp/mavros.rosinstall
   - wstool merge -t src /tmp/mavros.rosinstall
   - wstool update -t src
+  - sudo rosdep init
+  - rosdep update
   - rosdep install --from-paths src --ignore-src --rosdistro `echo $ROS_DISTRO` -y
 
-  - source ~/catkin_ws/devel/setup.bash
+
 install:
   git clone --depth=2 --branch=master https://github.com/Texas-Aerial-Robotics/Mission8_OutOfControls.git
   git clone --depth=2 --branch=master https://github.com/mavlink/mavros.git
-script: catkin build
+script:
+        source ~/catkin_ws/devel/setup.bash
+        catkin build
