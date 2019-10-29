@@ -19,11 +19,11 @@ int main(int argc, char** argv)
 	nextWayPoint.psi = 0;
 	waypointList.push_back(nextWayPoint);
 	nextWayPoint.x = 5;
-	nextWayPoint.y = 0;
+	nextWayPoint.y = 17;
 	nextWayPoint.z = 3;
-	nextWayPoint.psi = -90;
+	nextWayPoint.psi = 45;
 	waypointList.push_back(nextWayPoint);
-	nextWayPoint.x = 5;
+	nextWayPoint.x = 23;
 	nextWayPoint.y = 5;
 	nextWayPoint.z = 3;
 	nextWayPoint.psi = 0;
@@ -31,12 +31,12 @@ int main(int argc, char** argv)
 	nextWayPoint.x = 0;
 	nextWayPoint.y = 5;
 	nextWayPoint.z = 3;
-	nextWayPoint.psi = 90;
+	nextWayPoint.psi = 0;
 	waypointList.push_back(nextWayPoint);
 	nextWayPoint.x = 0;
 	nextWayPoint.y = 0;
 	nextWayPoint.z = 3;
-	nextWayPoint.psi = 180;
+	nextWayPoint.psi = 0;
 	waypointList.push_back(nextWayPoint);
 
   	// wait for FCU connection
@@ -58,11 +58,11 @@ int main(int argc, char** argv)
 	{
 		ros::spinOnce();
 		rate.sleep();
-		if(check_waypoint_reached(.2) == 1)
+		if(check_waypoint_reached() == 1)
 		{
 			if (counter < waypointList.size())
 			{
-				set_destination(waypointList[counter].x,waypointList[counter].y,waypointList[counter].z, waypointList[counter].psi);
+								set_destination(waypointList[counter].x,waypointList[counter].y,waypointList[counter].z, waypointList[counter].psi);
 				counter++;	
 			}else{
 				//land after all waypoints are reached
