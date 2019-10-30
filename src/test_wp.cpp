@@ -13,9 +13,9 @@ int main(int argc, char **argv)
   ros::NodeHandle n;
   ros::NodeHandle l;
 
-  ros::ServiceClient wp_clear_client = p.serviceClient<mavros_msgs::WaypointClear>("waypoint_clear_client");
-  ros::ServiceClient wp_srv_client = n.serviceClient<mavros_msgs::WaypointPush>("waypoint_push_client");
-  ros::ServiceClient set_home_client = l.serviceClient<mavros_msgs::CommandHome>("command_home_client");
+  ros::ServiceClient wp_clear_client = p.serviceClient<mavros_msgs::WaypointClear>("/mavros/mission/clear");
+  ros::ServiceClient wp_srv_client = n.serviceClient<mavros_msgs::WaypointPush>("mavros/mission/push");
+  ros::ServiceClient set_home_client = l.serviceClient<mavros_msgs::CommandHome>("mavros/cmd/set_home");
 
   mavros_msgs::WaypointPush wp_push_srv;
   mavros_msgs::WaypointClear wp_clear_srv;

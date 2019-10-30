@@ -1,3 +1,3 @@
 <launch>
-     <node pkg="out_of_controls" type="newflight" name="newflight" output="screen"></node>
+     <node pkg="out_of_controls" type="test_wp" name="test_wp" output="screen"></node>
 </launch>
