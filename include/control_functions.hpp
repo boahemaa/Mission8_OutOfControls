@@ -15,19 +15,19 @@
  #include <vector>
  #include <ros/duration.h>
  #include <iostream>
- 
- 
+
+
  mavros_msgs::State current_state_g;
  nav_msgs::Odometry current_pose_g;
  geometry_msgs::Pose correction_vector_g;
  geometry_msgs::PoseStamped waypoint_g;
- 
+
  float current_heading_g;
  float local_offset_g;
  float correction_heading_g = 0;
- 
- 
- 
+
+
+
  ros::Publisher local_pos_pub;
  ros::Subscriber currentPos;
  ros::Subscriber state_sub;
@@ -35,14 +35,14 @@
  ros::ServiceClient land_client;
  ros::ServiceClient set_mode_client;
  ros::ServiceClient takeoff_client;
- 
+
  struct control_api_waypoint{
-     float x; 
-     float y; 
-     float z; 
-     float psi; 
+     float x;
+     float y;
+     float z;
+     float psi;
  };
- 
+
  //get armed state
  void state_cb(const mavros_msgs::State::ConstPtr& msg)
  {
@@ -75,7 +75,7 @@
    //ROS_INFO("Current Heading %f origin", current_heading_g);
    //ROS_INFO("x: %f y: %f z: %f", current_pose_g.pose.pose.position.x, current_pose_g.pose.pose.position.y, current_pose_g.pose.pose.position.z);
  }
- //set orientation of the drone (drone should always be level) 
+ //set orientation of the drone (drone should always be level)
  // Heading input should match the ENU coordinate system
  void set_heading(float heading)
  {
@@ -83,19 +83,19 @@
    float yaw = heading*(M_PI/180);
    float pitch = 0;
    float roll = 0;
- 
+
    float cy = cos(yaw * 0.5);
    float sy = sin(yaw * 0.5);
    float cr = cos(roll * 0.5);
    float sr = sin(roll * 0.5);
    float cp = cos(pitch * 0.5);
    float sp = sin(pitch * 0.5);
- 
+
    float qw = cy * cr * cp + sy * sr * sp;
    float qx = cy * sr * cp - sy * cr * sp;
    float qy = cy * cr * sp + sy * sr * cp;
    float qz = sy * cr * cp - cy * sr * sp;
- 
+
    waypoint_g.pose.orientation.w = qw;
    waypoint_g.pose.orientation.x = qx;
    waypoint_g.pose.orientation.y = qy;
@@ -110,16 +110,16 @@
      float Xlocal = x*cos((correction_heading_g + local_offset_g - 90)*deg2rad) - y*sin((correction_heading_g + local_offset_g - 90)*deg2rad);
      float Ylocal = x*sin((correction_heading_g + local_offset_g - 90)*deg2rad) + y*cos((correction_heading_g + local_offset_g - 90)*deg2rad);
      float Zlocal = z;
- 
+
      x = Xlocal + correction_vector_g.position.x;
      y = Ylocal + correction_vector_g.position.y;
      z = Zlocal + correction_vector_g.position.z;
      ROS_INFO("Destination set to x: %f y: %f z: %f origin frame", x, y, z);
- 
+
      waypoint_g.pose.position.x = x;
      waypoint_g.pose.position.y = y;
      waypoint_g.pose.position.z = z;
-     
+
  }
  int wait4connect()
  {
@@ -132,14 +132,14 @@
      }
      if(current_state_g.connected)
      {
-         ROS_INFO("Connected to FCU");   
+         ROS_INFO("Connected to FCU");
          return 0;
      }else{
          ROS_INFO("Error connecting to drone");
-         return -1;  
+         return -1;
      }
-     
-     
+
+
  }
  int wait4start()
  {
@@ -155,7 +155,7 @@
          return 0;
      }else{
          ROS_INFO("Error starting mission!!");
-         return -1;  
+         return -1;
      }
  }
  int initialize_local_frame()
@@ -166,13 +166,13 @@
      for (int i = 1; i <= 30; i++) {
          ros::spinOnce();
          ros::Duration(0.1).sleep();
- 
+
          float q0 = current_pose_g.pose.pose.orientation.w;
          float q1 = current_pose_g.pose.pose.orientation.x;
          float q2 = current_pose_g.pose.pose.orientation.y;
          float q3 = current_pose_g.pose.pose.orientation.z;
          float psi = atan2((2*(q0*q3 + q1*q2)), (1 - 2*(pow(q2,2) + pow(q3,2))) ); // yaw
- 
+
          local_offset_g += psi*(180/M_PI);
          // ROS_INFO("current heading%d: %f", i, local_offset_g/i);
      }
@@ -197,20 +197,20 @@
      arm_request.request.value = true;
      while (!current_state_g.armed && !arm_request.response.success)
      {
-         ros::Duration(.1).sleep();
+         ros::Duration(.1).sleep();pinoutpinout
          arming_client.call(arm_request);
          local_pos_pub.publish(waypoint_g);
      }
      if(arm_request.response.success)
      {
-         ROS_INFO("Arming Successful");  
+         ROS_INFO("Arming Successful");
      }else{
          ROS_INFO("Arming failed with %d", arm_request.response.success);
-         return -1;  
+         return -1;
      }
- 
+
      //request takeoff
-     
+
      mavros_msgs::CommandTOL srv_takeoff;
      srv_takeoff.request.altitude = takeoff_alt;
      if(takeoff_client.call(srv_takeoff)){
@@ -220,18 +220,18 @@
          return -2;
      }
      sleep(5);
-     return 0; 
+     return 0;
  }
  int check_waypoint_reached()
  {
      local_pos_pub.publish(waypoint_g);
-     
+
      float tollorance = .3;
      float deltaX = abs(waypoint_g.pose.position.x - current_pose_g.pose.pose.position.x);
      float deltaY = abs(waypoint_g.pose.position.y - current_pose_g.pose.pose.position.y);
      float deltaZ = abs(waypoint_g.pose.position.z - current_pose_g.pose.pose.position.z);
      float dMag = sqrt( pow(deltaX, 2) + pow(deltaY, 2) + pow(deltaZ, 2) );
- 
+
      if( dMag < tollorance)
      {
          return 1;
@@ -260,5 +260,5 @@
      land_client = controlnode.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/land");
      set_mode_client = controlnode.serviceClient<mavros_msgs::SetMode>("/mavros/set_mode");
      takeoff_client = controlnode.serviceClient<mavros_msgs::CommandTOL>("/mavros/cmd/takeoff");
- 
+
  }
