@@ -197,7 +197,7 @@
      arm_request.request.value = true;
      while (!current_state_g.armed && !arm_request.response.success)
      {
-         ros::Duration(.1).sleep();pinoutpinout
+         ros::Duration(.1).sleep(); //pinoutpinout
          arming_client.call(arm_request);
          local_pos_pub.publish(waypoint_g);
      }

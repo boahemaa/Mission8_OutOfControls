@@ -223,3 +223,6 @@ target_link_libraries(set_home ${catkin_LIBRARIES})
 
 #add_executable(flightTest src/flightTest.cpp)
 #target_link_libraries(flightTest ${catkin_LIBRARIES})
+
+add_executable(test_wp src/test_wp.cpp)
+target_link_libraries(test_wp ${catkin_LIBRARIES})
